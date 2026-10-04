@@ -10,7 +10,7 @@ import os, re, sys, json, unicodedata, datetime as dt, requests
 from zoneinfo import ZoneInfo
 from html.parser import HTMLParser
 
-print(">>> generate_uv.py VERSION 5 (hoy + actual + máximo + pronóstico)")
+print(">>> generate_uv.py VERSION 6 (hoy + actual + máximo + pronóstico oficial por rango)")
 
 URL = "https://climatologia.meteochile.gob.cl/application/servicios/getRecienteUvb"
 FORECAST_URL = "https://www.meteochile.gob.cl/PortalDMC-web/otros_pronosticos/climatologia_pronostico_uv.xhtml"
@@ -82,69 +82,102 @@ class ForecastParser(HTMLParser):
     def get_text(self):
         return " ".join(self.text_parts)
 
-def number_candidates(text):
-    values = []
-    for match in re.finditer(r"(?<!\d)(\d{1,2}(?:[.,]\d)?)(?!\d)", text):
-        try:
-            value = float(match.group(1).replace(",", "."))
-        except ValueError:
-            continue
-        if 0 <= value <= 15:
-            values.append(value)
-    return values
+def forecast_range_candidates(text):
+    """Devuelve rangos oficiales del tipo 3-5, 6-7, 8-10 o 11+."""
+    found = []
+    for match in re.finditer(r"(?<!\d)(1\s*[-–]\s*2|3\s*[-–]\s*5|6\s*[-–]\s*7|8\s*[-–]\s*10|11\s*\+)(?!\d)", text):
+        value = re.sub(r"\s+", "", match.group(1)).replace("–", "-")
+        found.append((match.start(), value))
+    return found
+
+def range_upper(value):
+    if not value:
+        return None
+    if "+" in value:
+        return 11.0
+    return float(value.split("-")[-1])
 
 def get_uv_forecast(today):
     print("Consultando pronóstico UV oficial de Meteochile...")
-    try:
-        response = requests.get(
-            FORECAST_URL,
-            params={"reg": "8a"},
-            timeout=30,
-            headers={"User-Agent": "Mozilla/5.0 (compatible; ReporteUV/1.0)"},
-        )
-        response.raise_for_status()
-        response.encoding = "utf-8"
-        parser = ForecastParser()
-        parser.feed(response.text)
-        text = parser.get_text()
-        if not text:
-            print("AVISO: la página de pronóstico no entregó texto visible.")
-            return None
-        normalized = norm(text)
-        forecast_terms = ["pronostico uv", "indice uv", "indice ultravioleta", "ultravioleta"]
-        found_term = next((term for term in forecast_terms if norm(term) in normalized), None)
-        if not found_term:
-            print("AVISO: no se encontró una sección reconocible de pronóstico UV en la página oficial.")
-            return None
-        date_variants = [today.strftime("%d-%m-%Y"), today.strftime("%d/%m/%Y"), today.strftime("%Y-%m-%d")]
-        position = -1
-        for date_text in date_variants:
-            position = normalized.find(norm(date_text))
-            if position >= 0:
-                break
-        if position < 0:
-            position = normalized.find(norm(found_term))
-        if position < 0:
-            position = 0
-        context = text[max(0, position - 1000):min(len(text), position + 3000)]
-        values = [round(v, 1) for v in number_candidates(context) if 0 <= v <= 15]
-        if not values:
-            print("AVISO: no se encontraron valores numéricos de IUV en el contexto del pronóstico.")
-            return None
-        forecast_uv = max(values)
-        print(f"Pronóstico UV encontrado: {forecast_uv:.1f}")
-        return {
-            "uv": forecast_uv,
-            "fecha": today.isoformat(),
-            "fuente": "Dirección Meteorológica de Chile",
-            "tipo": "Pronóstico UV para día despejado",
-        }
-    except requests.RequestException as exc:
-        print(f"AVISO: no fue posible consultar el pronóstico UV oficial: {exc}")
-        return None
-    except Exception as exc:
-        print(f"AVISO: error procesando el pronóstico UV: {exc}")
-        return None
+
+    # La página oficial usa contenido dinámico. Probamos primero el identificador
+    # que actualmente entrega la página oficial para este producto y luego el
+    # identificador regional histórico de Biobío como respaldo.
+    region_params = ["12", "8", "8a"]
+    aliases = ["concepcion", "los angeles", "biobio"]
+    date_variants = [
+        today.strftime("%d-%m-%Y"),
+        today.strftime("%d/%m/%Y"),
+        today.strftime("%Y-%m-%d"),
+    ]
+
+    for reg in region_params:
+        try:
+            response = requests.get(
+                FORECAST_URL,
+                params={"reg": reg},
+                timeout=30,
+                headers={"User-Agent": "Mozilla/5.0 (compatible; ReporteUV/2.0)"},
+            )
+            response.raise_for_status()
+            response.encoding = "utf-8"
+            parser = ForecastParser()
+            parser.feed(response.text)
+            text = parser.get_text()
+            if not text:
+                continue
+
+            normalized = norm(text)
+            # Nunca elegimos simplemente el número mayor de la página.
+            # Primero localizamos la fecha de hoy y una referencia explícita a
+            # Concepción/Biobío/Los Ángeles, y solo entonces aceptamos un rango UV.
+            date_pos = -1
+            for date_text in date_variants:
+                date_pos = normalized.find(norm(date_text))
+                if date_pos >= 0:
+                    break
+
+            search_positions = []
+            for alias in aliases:
+                pos = normalized.find(norm(alias), max(0, date_pos - 1000) if date_pos >= 0 else 0)
+                if pos >= 0:
+                    search_positions.append(pos)
+
+            if not search_positions:
+                # Algunas versiones de la página no imprimen el nombre de la
+                # localidad en el texto extraído. En ese caso no inventamos un
+                # valor: seguimos con el siguiente identificador.
+                continue
+
+            for pos in search_positions:
+                context = text[max(0, pos - 700):min(len(text), pos + 1200)]
+                ranges = forecast_range_candidates(context)
+                if not ranges:
+                    continue
+
+                # Preferimos el rango más cercano a la localidad encontrada.
+                chosen = min(ranges, key=lambda item: abs(item[0] - min(700, len(context))))[1]
+                upper = range_upper(chosen)
+                if upper is None:
+                    continue
+
+                print(f"Pronóstico UV oficial encontrado: {chosen} (reg={reg})")
+                return {
+                    "uv": upper,
+                    "rango": chosen,
+                    "fecha": today.isoformat(),
+                    "fuente": "Dirección Meteorológica de Chile",
+                    "tipo": "Pronóstico UV para día despejado",
+                    "region_param": reg,
+                }
+
+        except requests.RequestException as exc:
+            print(f"AVISO: no fue posible consultar el pronóstico oficial (reg={reg}): {exc}")
+        except Exception as exc:
+            print(f"AVISO: error procesando el pronóstico oficial (reg={reg}): {exc}")
+
+    print("AVISO: no se encontró un rango UV oficial asociado a Concepción/Biobío; no se mostrará un valor inventado.")
+    return None
 
 try:
     r = requests.get(URL, params={"usuario": os.environ["DMC_USER"], "token": os.environ["DMC_TOKEN"]}, timeout=60)
@@ -185,6 +218,7 @@ for name, detail, code in STATIONS:
             "max_uv": None, "max_hora": None,
             "actual_uv": None, "actual_hora": None,
             "forecast_uv": forecast["uv"] if forecast else None,
+        "forecast_range": forecast["rango"] if forecast else None,
         })
         continue
 
@@ -201,6 +235,7 @@ for name, detail, code in STATIONS:
         "actual_uv": round(actual_v, 1),
         "actual_hora": f"{actual_t:%H:%M}",
         "forecast_uv": forecast["uv"] if forecast else None,
+        "forecast_range": forecast["rango"] if forecast else None,
     })
 
     print(f"{name}: IUV actual {actual_v:.1f} a las {actual_t:%H:%M} | IUV máximo {max_v:.1f} a las {max_t:%H:%M}")
@@ -236,7 +271,7 @@ print(" RESUMEN REPORTE UV")
 print("========================================")
 print("Fecha:", hoy)
 print("Consultado:", consultado.strftime("%Y-%m-%d %H:%M"))
-print("Pronóstico UV:", forecast["uv"] if forecast else "no disponible")
+print("Pronóstico UV:", forecast["rango"] if forecast else "no disponible")
 for station in stations:
     print("")
     print(station["name"], station["detail"])
