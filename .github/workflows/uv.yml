@@ -2,19 +2,20 @@ name: Actualizar reporte UV
 
 on:
   schedule:
-    # Ejecutar cada 30 minutos
-    - cron: "*/30 * * * *"
-
-  # Permite ejecutar el proceso manualmente desde GitHub
+    # Cada 30 min entre 11:00 y 23:59 UTC (aprox. 8:00 a 21:00 hora de Chile)
+    - cron: "*/30 11-23 * * *"
   workflow_dispatch: {}
 
 permissions:
   contents: write
 
+concurrency:
+  group: actualizar-uv
+  cancel-in-progress: false
+
 jobs:
   uv:
     runs-on: ubuntu-latest
-
     steps:
       - name: Descargar repositorio
         uses: actions/checkout@v4
@@ -37,8 +38,6 @@ jobs:
         run: |
           git config user.name "uv-bot"
           git config user.email "uv-bot@users.noreply.github.com"
-
           git add docs
-
           git diff --cached --quiet || git commit -m "Actualizar reporte UV"
           git push
