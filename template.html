@@ -88,7 +88,7 @@ section{padding:36px 0 6px}
   <div class="meta"><span id="fecha"></span><span id="upd"></span></div>
   <div class="pillars">
     <div><h3>FUENTE OFICIAL</h3><p>Dirección Meteorológica de Chile</p></div>
-    <div><h3>ACTUALIZACIÓN DIARIA</h3><p>Datos de las estaciones del Biobío</p></div>
+    <div><h3>ACTUALIZACIÓN CADA 30 MINUTOS</h3><p>Datos de las estaciones del Biobío</p></div>
     <div><h3>PREVENCIÓN</h3><p>Recomendaciones para cada planta</p></div>
   </div>
 </div></header>
@@ -126,9 +126,12 @@ section{padding:36px 0 6px}
 <script>
 /* DATOS_INICIO (el script automático reemplaza este bloque cada día) */
 const DATA={
-  fecha:null, // null = hoy
-  actualizado:"2026-10-03T17:30", // fecha y hora (Chile) de la última actualización de los datos
-  stations:[
+fecha:null,
+
+// Fecha y hora de la última consulta exitosa a Meteochile
+consultado:"2026-10-03T17:30",
+
+stations:[
     {name:"Concepción",detail:"Carriel Sur (360019)",uv:5.0,hora:"14:10"},
     {name:"Los Ángeles",detail:"María Dolores (370033)",uv:7.3,hora:"14:25"}
   ],
@@ -163,9 +166,25 @@ const $=id=>document.getElementById(id);
 const d=DATA.fecha?new Date(DATA.fecha+"T12:00:00"):new Date();
 const fecha=d.toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
 $("fecha").textContent=fecha;
-const U=DATA.actualizado?new Date(DATA.actualizado):new Date();
-const upd=U.toLocaleDateString("es-CL",{day:"numeric",month:"long",year:"numeric"})+", "+U.toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit",hour12:false})+" h";
-$("upd").textContent="🕒 Actualizado: "+upd+" (hora de Chile)";$("upd2").textContent=upd+" (hora de Chile). Los datos se renuevan cada día.";
+const U=DATA.consultado
+  ? new Date(DATA.consultado)
+  : new Date();
+
+const consulta=U.toLocaleDateString("es-CL",{
+  day:"numeric",
+  month:"long",
+  year:"numeric"
+})+", "+U.toLocaleTimeString("es-CL",{
+  hour:"2-digit",
+  minute:"2-digit",
+  hour12:false
+})+" h";
+
+$("upd").textContent=
+  "🕒 Última consulta a Meteochile: "+consulta+" (hora de Chile)";
+
+$("upd2").textContent=
+  consulta+" (hora de Chile). Consulta automática cada 30 minutos.";
 
 $("st").innerHTML=DATA.stations.map(s=>{const k=cat(s.uv);
  return `<div class="card st"><div class="badge" style="background:${k.c};color:${k.t}"><i>ÍNDICE UV</i><b>${lvl(s.uv)}</b></div>
