@@ -6,8 +6,9 @@ from zoneinfo import ZoneInfo
 URL = "https://climatologia.meteochile.gob.cl/application/servicios/getRecienteUvb"
 TZ = ZoneInfo("America/Santiago")
 # Planta -> estación de referencia más cercana (editable)
-SITES = [("Nacimiento", "Planta Santa Fe", "Los Angeles"),
-         ("Laja", "Planta Laja", "Los Angeles")]
+# 370033 = María Dolores, Los Ángeles Ad. (Concepción sería 360019)
+SITES = [("Nacimiento", "Planta Santa Fe", "370033"),
+         ("Laja", "Planta Laja", "370033")]
 CATS = [(2, "Bajo", "#2e9e4f", "🟢", "No requiere protección especial."),
         (5, "Moderado", "#b8960b", "🟡", "FPS 30+, lentes UV y cubrenuca."),
         (7, "Alto", "#e07b12", "🟠", "FPS 30+ cada 2 h, manga larga, evitar sol 12-16 h."),
@@ -20,9 +21,10 @@ cat = lambda v: next(c for c in CATS if v <= c[0])
 def walk(node, name, out):
     """Recorre el JSON sin asumir su estructura exacta."""
     if isinstance(node, dict):
-        for k, v in node.items():
-            if "nombre" in k.lower() and isinstance(v, str):
-                name = v
+        parts = [str(v) for k, v in node.items()
+                 if isinstance(v, (str, int)) and any(s in k.lower() for s in ("nombre", "codigo"))]
+        if parts:
+            name = " ".join(parts)  # código + nombre de la estación más cercana en el JSON
         low = {k.lower(): v for k, v in node.items()}
         if "indiceuv" in low:
             ts = next((v for k, v in low.items() if k in ("momento", "fechahora", "fecha")), None)
@@ -45,7 +47,11 @@ if not recs:
 rows = []
 for town, plant, ref in SITES:
     mine = [(to_local(t), v) for n, t, v in recs if n and norm(ref) in norm(n) and t]
-    if not mine: sys.exit(f"Sin datos para la estación {ref}")
+    if not mine:
+        names = sorted({str(n) for n, _, _ in recs})
+        print("Estaciones encontradas:", names)
+        print("Muestra del JSON:", json.dumps(r.json(), ensure_ascii=False)[:1500])
+        sys.exit(f"Sin datos para la estación {ref}")
     day = max(d.date() for d, _ in mine)                 # último día con datos
     peak = max((v, d) for d, v in mine if d.date() == day)
     rows.append((town, plant, ref, day, peak[0], peak[1], cat(round(peak[0]))))
