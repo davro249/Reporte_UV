@@ -3,14 +3,17 @@
 - Usa solamente observaciones del día actual en Chile.
 - Nunca reemplaza el día actual por ayer.
 - Si todavía no existen observaciones de hoy, mantiene actual/max en null.
-- Intenta obtener además el pronóstico UV oficial de Meteochile para hoy.
+- Obtiene el pronóstico UV oficial de Meteochile para Biobío (reg=8a).
+- El pronóstico se busca como rango oficial (1-2, 3-5, 6-7, 8-10, 11+).
+- Si Meteochile entrega el pronóstico como imagen, se intenta leer esa imagen con OCR.
 - Variables de entorno: DMC_USER, DMC_TOKEN.
 """
-import os, re, sys, json, unicodedata, datetime as dt, requests
+import os, re, sys, json, unicodedata, datetime as dt, requests, io, base64
 from zoneinfo import ZoneInfo
 from html.parser import HTMLParser
+from urllib.parse import urljoin
 
-print(">>> generate_uv.py VERSION 6 (hoy + actual + máximo + pronóstico oficial por rango)")
+print(">>> generate_uv.py VERSION 7 (hoy + actual + máximo + pronóstico oficial Biobío)")
 
 URL = "https://climatologia.meteochile.gob.cl/application/servicios/getRecienteUvb"
 FORECAST_URL = "https://www.meteochile.gob.cl/PortalDMC-web/otros_pronosticos/climatologia_pronostico_uv.xhtml"
@@ -22,8 +25,10 @@ STATIONS = [("Concepción", "Carriel Sur (360019)", "360019"),
 PLANTS = [("Planta Santa Fe", "Nacimiento", "Los Ángeles"),
           ("Planta Laja", "Laja", "Los Ángeles")]
 
+
 def norm(value):
     return unicodedata.normalize("NFD", str(value)).encode("ascii", "ignore").decode().lower()
+
 
 def station_name(data):
     if not isinstance(data, dict):
@@ -32,6 +37,7 @@ def station_name(data):
     if "codigonacional" in low:
         return f"{low['codigonacional']} {low.get('nombreestacion', '')}".strip()
     return None
+
 
 def walk(node, name, out):
     if isinstance(node, dict):
@@ -52,6 +58,7 @@ def walk(node, name, out):
         for value in node:
             walk(value, name, out)
 
+
 def source_tz(js):
     timezone_value = None
     if isinstance(js, dict):
@@ -62,6 +69,7 @@ def source_tz(js):
     except Exception:
         return dt.timezone.utc
 
+
 def parse_timestamp(timestamp, timezone):
     text = str(timestamp).replace("Z", "").replace("T", " ")
     for fmt in ("%d-%m-%Y %H:%M:%S", "%Y-%m-%d %H:%M:%S", "%d-%m-%Y %H:%M", "%Y-%m-%d %H:%M"):
@@ -71,24 +79,51 @@ def parse_timestamp(timestamp, timezone):
             pass
     raise ValueError(f"Formato de fecha desconocido: {timestamp}")
 
+
 class ForecastParser(HTMLParser):
     def __init__(self):
         super().__init__()
         self.text_parts = []
+        self.images = []
+
     def handle_data(self, data):
         text = data.strip()
         if text:
             self.text_parts.append(text)
+
+    def handle_starttag(self, tag, attrs):
+        if tag.lower() == "img":
+            attrs = dict(attrs)
+            src = attrs.get("src")
+            if src:
+                self.images.append(src)
+
     def get_text(self):
         return " ".join(self.text_parts)
 
+
+RANGE_RE = re.compile(r"(?<!\d)(1\s*[-–]\s*2|3\s*[-–]\s*5|6\s*[-–]\s*7|8\s*[-–]\s*10|11\s*\+)(?!\d)")
+OCR_RANGE_RE = re.compile(r"(?<!\d)(1\s*2|3\s*5|6\s*7|8\s*10)(?!\d)")
+
+
 def forecast_range_candidates(text):
-    """Devuelve rangos oficiales del tipo 3-5, 6-7, 8-10 o 11+."""
     found = []
-    for match in re.finditer(r"(?<!\d)(1\s*[-–]\s*2|3\s*[-–]\s*5|6\s*[-–]\s*7|8\s*[-–]\s*10|11\s*\+)(?!\d)", text):
+    for match in RANGE_RE.finditer(text):
         value = re.sub(r"\s+", "", match.group(1)).replace("–", "-")
         found.append((match.start(), value))
+    # OCR de la tabla oficial puede leer "3-5" como "35". Solo usamos
+    # esta tolerancia para el texto OCR y la asociación posterior con la fecha/localidad.
+    if not found:
+        for match in OCR_RANGE_RE.finditer(text):
+            raw = re.sub(r"\s+", "", match.group(1))
+            if raw == "12": value = "1-2"
+            elif raw == "35": value = "3-5"
+            elif raw == "67": value = "6-7"
+            elif raw == "810": value = "8-10"
+            else: continue
+            found.append((match.start(), value))
     return found
+
 
 def range_upper(value):
     if not value:
@@ -97,87 +132,138 @@ def range_upper(value):
         return 11.0
     return float(value.split("-")[-1])
 
-def get_uv_forecast(today):
-    print("Consultando pronóstico UV oficial de Meteochile...")
 
-    # La página oficial usa contenido dinámico. Probamos primero el identificador
-    # que actualmente entrega la página oficial para este producto y luego el
-    # identificador regional histórico de Biobío como respaldo.
-    region_params = ["12", "8", "8a"]
-    aliases = ["concepcion", "los angeles", "biobio"]
+def choose_range_from_text(text, today):
+    """Busca el rango asociado al día/localidad; nunca toma un número arbitrario."""
+    if not text:
+        return None
+    normalized = norm(text)
+    aliases = ["concepcion", "biobio", "los angeles"]
     date_variants = [
         today.strftime("%d-%m-%Y"),
         today.strftime("%d/%m/%Y"),
         today.strftime("%Y-%m-%d"),
+        today.strftime("%d de %B de %Y"),
     ]
 
-    for reg in region_params:
-        try:
-            response = requests.get(
-                FORECAST_URL,
-                params={"reg": reg},
-                timeout=30,
-                headers={"User-Agent": "Mozilla/5.0 (compatible; ReporteUV/2.0)"},
-            )
-            response.raise_for_status()
-            response.encoding = "utf-8"
-            parser = ForecastParser()
-            parser.feed(response.text)
-            text = parser.get_text()
-            if not text:
-                continue
+    date_positions = [normalized.find(norm(x)) for x in date_variants]
+    date_positions = [p for p in date_positions if p >= 0]
+    date_pos = date_positions[0] if date_positions else -1
 
-            normalized = norm(text)
-            # Nunca elegimos simplemente el número mayor de la página.
-            # Primero localizamos la fecha de hoy y una referencia explícita a
-            # Concepción/Biobío/Los Ángeles, y solo entonces aceptamos un rango UV.
-            date_pos = -1
-            for date_text in date_variants:
-                date_pos = normalized.find(norm(date_text))
-                if date_pos >= 0:
-                    break
+    # Primero, si aparece Concepción/Biobío, buscar un rango cercano.
+    for alias in aliases:
+        start = max(0, date_pos - 2000) if date_pos >= 0 else 0
+        pos = normalized.find(norm(alias), start)
+        if pos < 0:
+            continue
+        context = text[max(0, pos - 1200):min(len(text), pos + 1800)]
+        ranges = forecast_range_candidates(context)
+        if ranges:
+            # El rango más cercano a la localidad es el candidato.
+            center = min(1200, len(context))
+            return min(ranges, key=lambda x: abs(x[0] - center))[1]
 
-            search_positions = []
-            for alias in aliases:
-                pos = normalized.find(norm(alias), max(0, date_pos - 1000) if date_pos >= 0 else 0)
-                if pos >= 0:
-                    search_positions.append(pos)
+    # Si la página regional ya está filtrada a Biobío, puede no repetir el nombre.
+    # En ese caso exigimos que el rango esté cerca de la fecha de hoy.
+    if date_pos >= 0:
+        context = text[max(0, date_pos - 500):min(len(text), date_pos + 1800)]
+        ranges = forecast_range_candidates(context)
+        if ranges:
+            return min(ranges, key=lambda x: abs(x[0] - 500))[1]
 
-            if not search_positions:
-                # Algunas versiones de la página no imprimen el nombre de la
-                # localidad en el texto extraído. En ese caso no inventamos un
-                # valor: seguimos con el siguiente identificador.
-                continue
-
-            for pos in search_positions:
-                context = text[max(0, pos - 700):min(len(text), pos + 1200)]
-                ranges = forecast_range_candidates(context)
-                if not ranges:
-                    continue
-
-                # Preferimos el rango más cercano a la localidad encontrada.
-                chosen = min(ranges, key=lambda item: abs(item[0] - min(700, len(context))))[1]
-                upper = range_upper(chosen)
-                if upper is None:
-                    continue
-
-                print(f"Pronóstico UV oficial encontrado: {chosen} (reg={reg})")
-                return {
-                    "uv": upper,
-                    "rango": chosen,
-                    "fecha": today.isoformat(),
-                    "fuente": "Dirección Meteorológica de Chile",
-                    "tipo": "Pronóstico UV para día despejado",
-                    "region_param": reg,
-                }
-
-        except requests.RequestException as exc:
-            print(f"AVISO: no fue posible consultar el pronóstico oficial (reg={reg}): {exc}")
-        except Exception as exc:
-            print(f"AVISO: error procesando el pronóstico oficial (reg={reg}): {exc}")
-
-    print("AVISO: no se encontró un rango UV oficial asociado a Concepción/Biobío; no se mostrará un valor inventado.")
     return None
+
+
+def ocr_image(image_bytes):
+    """OCR opcional: GitHub-hosted Ubuntu normalmente dispone de tesseract."""
+    try:
+        from PIL import Image, ImageOps, ImageEnhance
+        import pytesseract
+        image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        # Dos pasadas: original y escala de grises/contraste.
+        texts = []
+        for img in (image, ImageEnhance.Contrast(ImageOps.grayscale(image)).enhance(2.0)):
+            for psm in (6, 11):
+                try:
+                    texts.append(pytesseract.image_to_string(img, config=f"--psm {psm}"))
+                except Exception:
+                    pass
+        return "\n".join(texts)
+    except Exception as exc:
+        print(f"AVISO: OCR no disponible o falló: {exc}")
+        return ""
+
+
+def get_uv_forecast(today):
+    print("Consultando pronóstico UV oficial de Meteochile para Biobío (reg=8a)...")
+    reg = "8a"
+    try:
+        response = requests.get(
+            FORECAST_URL,
+            params={"reg": reg},
+            timeout=30,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; ReporteUV/3.0)"},
+        )
+        response.raise_for_status()
+        response.encoding = "utf-8"
+
+        parser = ForecastParser()
+        parser.feed(response.text)
+
+        # 1) Texto HTML, si la DMC lo entrega directamente.
+        chosen = choose_range_from_text(parser.get_text(), today)
+        if chosen:
+            print(f"Pronóstico UV oficial encontrado en HTML: {chosen}")
+            return {
+                "uv": range_upper(chosen), "rango": chosen,
+                "fecha": today.isoformat(),
+                "fuente": "Dirección Meteorológica de Chile",
+                "tipo": "Pronóstico UV para día despejado",
+                "region_param": reg,
+            }
+
+        # 2) La página actual de DMC puede presentar el pronóstico como imagen.
+        image_urls = []
+        for src in parser.images:
+            full = urljoin(response.url, src)
+            if full not in image_urls:
+                image_urls.append(full)
+
+        print(f"Imágenes encontradas en la página de pronóstico: {len(image_urls)}")
+        for image_url in image_urls:
+            try:
+                img_response = requests.get(
+                    image_url, timeout=20,
+                    headers={"User-Agent": "Mozilla/5.0 (compatible; ReporteUV/3.0)"},
+                )
+                img_response.raise_for_status()
+                content_type = img_response.headers.get("content-type", "")
+                if not content_type.startswith("image/"):
+                    continue
+                ocr_text = ocr_image(img_response.content)
+                chosen = choose_range_from_text(ocr_text, today)
+                if chosen:
+                    print(f"Pronóstico UV oficial encontrado mediante imagen/OCR: {chosen}")
+                    return {
+                        "uv": range_upper(chosen), "rango": chosen,
+                        "fecha": today.isoformat(),
+                        "fuente": "Dirección Meteorológica de Chile",
+                        "tipo": "Pronóstico UV para día despejado",
+                        "region_param": reg,
+                    }
+            except requests.RequestException:
+                continue
+
+        print("AVISO: Meteochile sí responde, pero el pronóstico no está expuesto como texto legible; no se inventará un valor.")
+        return None
+
+    except requests.RequestException as exc:
+        print(f"AVISO: no fue posible consultar el pronóstico oficial: {exc}")
+        return None
+    except Exception as exc:
+        print(f"AVISO: error procesando el pronóstico oficial: {exc}")
+        return None
+
 
 try:
     r = requests.get(URL, params={"usuario": os.environ["DMC_USER"], "token": os.environ["DMC_TOKEN"]}, timeout=60)
@@ -210,15 +296,19 @@ for name, detail, code in STATIONS:
 
     today = [(local_time, value) for local_time, value in mine if local_time.date() == hoy]
 
+    common = {
+        "name": name, "detail": detail,
+        "forecast_uv": forecast["uv"] if forecast else None,
+        "forecast_range": forecast["rango"] if forecast else None,
+    }
+
     if not today:
         print(f"AVISO: todavía no hay datos de hoy ({hoy}) para {name} ({code})")
         stations.append({
-            "name": name, "detail": detail,
+            **common,
             "uv": None, "hora": None,
             "max_uv": None, "max_hora": None,
             "actual_uv": None, "actual_hora": None,
-            "forecast_uv": forecast["uv"] if forecast else None,
-        "forecast_range": forecast["rango"] if forecast else None,
         })
         continue
 
@@ -226,16 +316,13 @@ for name, detail, code in STATIONS:
     max_t, max_v = max(today, key=lambda item: item[1])
 
     stations.append({
-        "name": name,
-        "detail": detail,
+        **common,
         "uv": round(max_v, 1),
         "hora": f"{max_t:%H:%M}",
         "max_uv": round(max_v, 1),
         "max_hora": f"{max_t:%H:%M}",
         "actual_uv": round(actual_v, 1),
         "actual_hora": f"{actual_t:%H:%M}",
-        "forecast_uv": forecast["uv"] if forecast else None,
-        "forecast_range": forecast["rango"] if forecast else None,
     })
 
     print(f"{name}: IUV actual {actual_v:.1f} a las {actual_t:%H:%M} | IUV máximo {max_v:.1f} a las {max_t:%H:%M}")
@@ -264,6 +351,7 @@ os.makedirs(os.path.join(HERE, "docs"), exist_ok=True)
 output_path = os.path.join(HERE, "docs", "index.html")
 with open(output_path, "w", encoding="utf-8") as file:
     file.write(html)
+
 print("Página generada:", output_path)
 print("")
 print("========================================")
@@ -283,4 +371,5 @@ for station in stations:
         print("  Máximo: todavía sin mediciones de hoy")
     else:
         print(f"  Máximo: {station['max_uv']:.1f} a las {station['max_hora']} h")
+    print("  Pronóstico:", station["forecast_range"] or "no disponible")
 print("========================================")
