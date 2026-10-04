@@ -20,7 +20,6 @@ body{margin:0;background:var(--bg);color:var(--tx);font-family:Lato,system-ui,-a
 .hero .pl b{color:var(--blue);margin-right:8px}
 .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
 .meta span{background:rgba(255,255,255,.75);color:var(--navy);border-radius:99px;padding:6px 14px;font-size:.82rem;font-weight:700}
-.meta #fecha{text-transform:capitalize}
 .pillars{display:grid;gap:18px;grid-template-columns:1fr;margin-top:34px;text-align:center;color:#fff;text-shadow:0 1px 8px rgba(25,45,110,.35)}
 @media(min-width:700px){.pillars{grid-template-columns:repeat(3,1fr)}}
 .pillars h3{margin:0;font-size:1.15rem;font-weight:700;letter-spacing:.01em}
@@ -165,7 +164,7 @@ const cat=u=>CATS.find(k=>lvl(u)<=k.b);
 const $=id=>document.getElementById(id);
 const d=DATA.fecha?new Date(DATA.fecha+"T12:00:00"):new Date();
 const fecha=d.toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
-$("fecha").textContent=fecha;
+$("fecha").textContent=fecha.charAt(0).toUpperCase()+fecha.slice(1);
 const U=DATA.consultado
   ? new Date(DATA.consultado)
   : new Date();
@@ -191,10 +190,10 @@ $("st").innerHTML=DATA.stations.map(s=>{
   const hasActual=s.actual_uv!==null&&s.actual_uv!==undefined;
   const hasForecast=s.forecast_uv!==null&&s.forecast_uv!==undefined;
   const visualUV=hasData?s.max_uv:(hasForecast?s.forecast_uv:0);
-  const k=cat(visualUV);
+  const k0=cat(visualUV),k=(!hasData&&!hasForecast)?Object.assign({},k0,{c:"#c9d3de",t:"#3d5080"}):k0;
   const forecastText=s.forecast_range||String(s.forecast_uv).replace(".",",");
   return `<div class="card st">
-    <div class="badge" style="background:${k.c};color:${k.t}"><i>${hasData?"MÁX. UV":"PRONÓSTICO"}</i><b>${hasData?lvl(s.max_uv):(hasForecast?forecastText:"—")}</b></div>
+    <div class="badge" style="background:${k.c};color:${k.t}"><i>${hasData?"MÁX. UV":(hasForecast?"PRONÓSTICO":"SIN DATO")}</i><b>${hasData?lvl(s.max_uv):(hasForecast?forecastText:"—")}</b></div>
     <div><h3>${s.name}</h3><p>${s.detail}</p>
       <span class="pill" style="background:${k.c};color:${k.t}">${hasData?k.n:(hasForecast?"Pronóstico UV":"Sin dato")}</span>
       ${hasData?`<p><strong>Máximo:</strong> ${String(s.max_uv).replace(".",",")} a las ${s.max_hora} h</p>`:`<p><strong>Máximo:</strong> todavía sin mediciones de hoy</p>`}
@@ -219,7 +218,7 @@ $("pl").innerHTML=DATA.plants.map(p=>{
   const hasData=s.max_uv!==null&&s.max_uv!==undefined;
   const hasForecast=s.forecast_uv!==null&&s.forecast_uv!==undefined;
   const visualUV=hasData?s.max_uv:(hasForecast?s.forecast_uv:0);
-  const k=cat(visualUV);
+  const k0=cat(visualUV),k=(!hasData&&!hasForecast)?Object.assign({},k0,{c:"#c9d3de",t:"#3d5080"}):k0;
   const forecastText=s.forecast_range||String(s.forecast_uv).replace(".",",");
   const nivel=hasData?k.n:(hasForecast?"Pronóstico UV":"Sin dato");
   const valor=hasData?lvl(s.max_uv):(hasForecast?forecastText:"—");
