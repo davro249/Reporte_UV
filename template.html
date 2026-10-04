@@ -187,54 +187,47 @@ $("upd2").textContent=
   consulta+" (hora de Chile). Consulta automática cada 30 minutos.";
 
 $("st").innerHTML=DATA.stations.map(s=>{
-  const k=cat(s.max_uv);
-
-  return `
-  <div class="card st">
-
-    <div class="badge" style="background:${k.c};color:${k.t}">
-      <i>MÁX. UV</i>
-      <b>${lvl(s.max_uv)}</b>
-    </div>
-
-    <div>
-      <h3>${s.name}</h3>
-      <p>${s.detail}</p>
-
-      <span class="pill" style="background:${k.c};color:${k.t}">
-        ${k.n}
-      </span>
-
-      <p>
-        <strong>Máximo:</strong>
-        ${String(s.max_uv).replace(".",",")}
-        a las ${s.max_hora} h
-      </p>
-
-      <p>
-        <strong>Actual:</strong>
-        ${String(s.actual_uv).replace(".",",")}
-        a las ${s.actual_hora} h
-      </p>
-
-    </div>
-
-  </div>`;
+  const hasData=s.max_uv!==null&&s.max_uv!==undefined;
+  const hasActual=s.actual_uv!==null&&s.actual_uv!==undefined;
+  const hasForecast=s.forecast_uv!==null&&s.forecast_uv!==undefined;
+  const visualUV=hasData?s.max_uv:(hasForecast?s.forecast_uv:0);
+  const k=cat(visualUV);
+  return `<div class="card st">
+    <div class="badge" style="background:${k.c};color:${k.t}"><i>${hasData?"MÁX. UV":"PRONÓSTICO"}</i><b>${hasData?lvl(s.max_uv):(hasForecast?lvl(s.forecast_uv):"—")}</b></div>
+    <div><h3>${s.name}</h3><p>${s.detail}</p>
+      <span class="pill" style="background:${k.c};color:${k.t}">${hasData?k.n:(hasForecast?"Pronóstico UV":"Sin dato")}</span>
+      ${hasData?`<p><strong>Máximo:</strong> ${String(s.max_uv).replace(".",",")} a las ${s.max_hora} h</p>`:`<p><strong>Máximo:</strong> todavía sin mediciones de hoy</p>`}
+      ${hasActual?`<p><strong>Actual:</strong> ${String(s.actual_uv).replace(".",",")} a las ${s.actual_hora} h</p>`:`<p><strong>Actual:</strong> todavía sin mediciones de hoy</p>`}
+      ${hasForecast?`<p><strong>Pronóstico UV:</strong> ${String(s.forecast_uv).replace(".",",")} <span style="font-size:.72rem">(día despejado)</span></p>`:""}
+    </div></div>`;
 }).join("");
-const on=new Set(DATA.stations.map(s=>Math.min(11,lvl(s.uv))));
+const scaleValues=DATA.stations.map(s=>{
+  if(s.max_uv!==null&&s.max_uv!==undefined)return s.max_uv;
+  if(s.forecast_uv!==null&&s.forecast_uv!==undefined)return s.forecast_uv;
+  return null;
+}).filter(v=>v!==null);
+const on=new Set(scaleValues.map(v=>Math.min(11,lvl(v))));
 $("scale").innerHTML=CATS.map(k=>`<div class="cat" style="flex:${k.tiles.length}">
  <div class="chip" style="background:${k.c};color:${k.t}">${k.n.toUpperCase()}</div>
  <div class="tiles">${k.tiles.map(n=>`<div class="tile${on.has(n)?" on":""}" style="background:${k.c};color:${k.t}"><i>ÍNDICE UV</i><b>${n==11?"11+":n}</b></div>`).join("")}</div></div>`).join("");
 $("grp").innerHTML=GR.map(g=>`<div class="gb"><h4>${g.h}</h4>${g.p.map(x=>`<p>${x}</p>`).join("")}</div>`).join("");
 
 const byName=n=>DATA.stations.find(s=>s.name===n)||DATA.stations[0];
-$("pl").innerHTML=DATA.plants.map(p=>{const s=byName(p.ref),k=cat(s.uv);
- return `<div class="card plant" style="--c:${k.c}"><h3>Recomendado para ${p.name}</h3>
- <div class="t">${p.town} · referencia: ${s.name} · IUV máx. ${lvl(s.uv)}</div>
- <span class="pill" style="background:${k.c};color:${k.t}">${k.n}</span>
- <ul>${k.r.map(x=>`<li>${x}</li>`).join("")}</ul>
- <div class="btns"><button class="wa" data-i="${DATA.plants.indexOf(p)}">Enviar al equipo de ${p.name} por WhatsApp</button>
- <button class="im" data-i="${DATA.plants.indexOf(p)}">Compartir imagen informativa</button></div></div>`}).join("");
+$("pl").innerHTML=DATA.plants.map(p=>{
+  const s=byName(p.ref);
+  const hasData=s.max_uv!==null&&s.max_uv!==undefined;
+  const hasForecast=s.forecast_uv!==null&&s.forecast_uv!==undefined;
+  const visualUV=hasData?s.max_uv:(hasForecast?s.forecast_uv:0);
+  const k=cat(visualUV);
+  const nivel=hasData?k.n:(hasForecast?"Pronóstico UV":"Sin dato");
+  const valor=hasData?lvl(s.max_uv):(hasForecast?lvl(s.forecast_uv):"—");
+  return `<div class="card plant" style="--c:${k.c}"><h3>Recomendado para ${p.name}</h3>
+  <div class="t">${p.town} · referencia: ${s.name} · ${hasData?"IUV máx. "+valor:(hasForecast?"IUV pronosticado "+valor:"IUV todavía sin dato")}</div>
+  <span class="pill" style="background:${k.c};color:${k.t}">${nivel}</span>
+  <ul>${k.r.map(x=>`<li>${x}</li>`).join("")}</ul>
+  <div class="btns"><button class="wa" data-i="${DATA.plants.indexOf(p)}">Enviar al equipo de ${p.name} por WhatsApp</button>
+  <button class="im" data-i="${DATA.plants.indexOf(p)}">Compartir imagen informativa</button></div></div>`;
+}).join("");
 
 $("note").textContent=(DATA.demo?"Vista previa con datos de ejemplo. ":"")+"Los valores corresponden a estaciones de referencia de la Dirección Meteorológica de Chile, no a mediciones dentro de las plantas.";
 
@@ -243,7 +236,10 @@ function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);
 function wrap(c,t,w){const o=[];let l="";t.split(" ").forEach(a=>{const n=l?l+" "+a:a;if(c.measureText(n).width>w&&l){o.push(l);l=a}else l=n});if(l)o.push(l);return o}
 async function makeImg(p){
  try{await document.fonts.load('700 40px Lato');await document.fonts.load('400 30px Lato')}catch(e){}
- const s=byName(p.ref),k=cat(s.uv),v=lvl(s.uv),W=1080,y0=920;
+ const s=byName(p.ref);
+  const hasData=s.max_uv!==null&&s.max_uv!==undefined;
+  const visualUV=hasData?s.max_uv:(s.forecast_uv!==null&&s.forecast_uv!==undefined?s.forecast_uv:0);
+  const k=cat(visualUV),v=lvl(visualUV),W=1080,y0=920;
  const m=document.createElement("canvas").getContext("2d");m.font='400 32px '+FF;
  const bl=k.r.map(x=>wrap(m,x,860)),nl=bl.reduce((a,b)=>a+b.length,0);
  const cardH=130+nl*44+bl.length*12+30,H=y0+cardH+190;
@@ -258,7 +254,7 @@ async function makeImg(p){
  c.fillStyle=k.t;c.textAlign="center";c.font='700 26px '+FF;c.fillText("ÍNDICE UV",250,420);c.font='700 190px '+FF;c.fillText(v>=11?"11+":String(v),250,615);
  c.textAlign="left";
  c.fillStyle="#27385f";c.font='700 84px '+FF;c.fillText(k.n,440,470);
- c.fillStyle="#3d5080";c.font='400 32px '+FF;c.fillText("Máximo medido: "+String(s.uv).replace(".",",")+" a las "+s.hora+" h",440,530);
+ c.fillStyle="#3d5080";c.font='400 32px '+FF;c.fillText(hasData ? "Máximo medido: "+String(s.max_uv).replace(".",",")+" a las "+s.max_hora+" h" : "Pronóstico UV: "+String(s.forecast_uv??"—").replace(".",",")+" (día despejado)",440,530);
  c.fillStyle="#0a8cff";c.font='700 28px '+FF;c.fillText(GR[k.g].h,440,590);
  const tw=80,gp=8;
  for(let n=1;n<=11;n++){const kk=CATS.find(q=>n<=q.b),x=60+(n-1)*(tw+gp),on=n===Math.min(11,v),y=on?765:780;
@@ -292,16 +288,14 @@ $("mo").onclick=e=>{if(e.target.id==="mo")$("mo").hidden=true};
 document.addEventListener("click",e=>{
  const bi=e.target.closest(".im");if(bi){shareImg(+bi.dataset.i);return}
  const b=e.target.closest(".wa");if(!b)return;
- const p=DATA.plants[+b.dataset.i],s=byName(p.ref),k=cat(s.uv);
- const F=fecha.charAt(0).toUpperCase()+fecha.slice(1);
- const m=[`Hola equipo de *${p.name}* (${p.town}) 👋`,"",
-  `☀️ *Índice UV de hoy · ${F}*`,
-  `${k.e} Nivel: *${k.n}* (IUV máximo ${lvl(s.uv)})`,
-  `📍 Estación de referencia: ${s.name}`,
-  `🕒 Actualizado: ${upd}`,"",
-  "*Para cuidarnos hoy:*",...k.r.map(x=>"• "+x),"",
-  k.cierre,"","_Fuente: Dirección Meteorológica de Chile_"].join("\n");
- window.open("https://wa.me/?text="+encodeURIComponent(m),"_blank","noopener");
+ const p=DATA.plants[+b.dataset.i],s=byName(p.ref);
+  const hasData=s.max_uv!==null&&s.max_uv!==undefined;
+  const visualUV=hasData?s.max_uv:(s.forecast_uv!==null&&s.forecast_uv!==undefined?s.forecast_uv:0);
+  const k=cat(visualUV);
+  const F=fecha.charAt(0).toUpperCase()+fecha.slice(1);
+  const nivel=hasData?`IUV máximo ${lvl(s.max_uv)}`:(s.forecast_uv!==null&&s.forecast_uv!==undefined?`IUV pronosticado ${lvl(s.forecast_uv)} (día despejado)`:"sin mediciones todavía");
+  const m=[`Hola equipo de *${p.name}* (${p.town}) 👋`,"",`☀️ *Índice UV de hoy · ${F}*`,`${k.e} Nivel de referencia: *${k.n}* (${nivel})`,`📍 Estación de referencia: ${s.name}`,`🕒 Actualizado: ${upd}`,"","*Para cuidarnos hoy:*",...k.r.map(x=>"• "+x),"",k.cierre,"","_Fuente: Dirección Meteorológica de Chile_"].join("\n");
+  window.open("https://wa.me/?text="+encodeURIComponent(m),"_blank","noopener");
 });
 </script>
 </body>
