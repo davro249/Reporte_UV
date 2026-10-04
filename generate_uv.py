@@ -110,9 +110,6 @@ data = {
     "demo": False,
 }
 
-        "stations": stations,
-        "plants": [{"name": n, "town": t, "ref": ref} for n, t, ref in PLANTS], "demo": False}
-
 tpl = open(os.path.join(HERE, "template.html"), encoding="utf-8").read()
 block = "/* DATOS_INICIO */\nconst DATA=" + json.dumps(data, ensure_ascii=False) + ";\n/* DATOS_FIN */"
 html, n = re.subn(r"/\* DATOS_INICIO.*?DATOS_FIN \*/", lambda m: block, tpl, flags=re.S)
