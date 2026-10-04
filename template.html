@@ -186,10 +186,41 @@ $("upd").textContent=
 $("upd2").textContent=
   consulta+" (hora de Chile). Consulta automática cada 30 minutos.";
 
-$("st").innerHTML=DATA.stations.map(s=>{const k=cat(s.uv);
- return `<div class="card st"><div class="badge" style="background:${k.c};color:${k.t}"><i>ÍNDICE UV</i><b>${lvl(s.uv)}</b></div>
- <div><h3>${s.name}</h3><p>${s.detail}</p><span class="pill" style="background:${k.c};color:${k.t}">${k.n}</span><p>Máximo a las ${s.hora} h</p></div></div>`}).join("");
+$("st").innerHTML=DATA.stations.map(s=>{
+  const k=cat(s.max_uv);
 
+  return `
+  <div class="card st">
+
+    <div class="badge" style="background:${k.c};color:${k.t}">
+      <i>MÁX. UV</i>
+      <b>${lvl(s.max_uv)}</b>
+    </div>
+
+    <div>
+      <h3>${s.name}</h3>
+      <p>${s.detail}</p>
+
+      <span class="pill" style="background:${k.c};color:${k.t}">
+        ${k.n}
+      </span>
+
+      <p>
+        <strong>Máximo:</strong>
+        ${String(s.max_uv).replace(".",",")}
+        a las ${s.max_hora} h
+      </p>
+
+      <p>
+        <strong>Actual:</strong>
+        ${String(s.actual_uv).replace(".",",")}
+        a las ${s.actual_hora} h
+      </p>
+
+    </div>
+
+  </div>`;
+}).join("");
 const on=new Set(DATA.stations.map(s=>Math.min(11,lvl(s.uv))));
 $("scale").innerHTML=CATS.map(k=>`<div class="cat" style="flex:${k.tiles.length}">
  <div class="chip" style="background:${k.c};color:${k.t}">${k.n.toUpperCase()}</div>
