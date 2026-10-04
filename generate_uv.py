@@ -54,9 +54,26 @@ def parse(ts, tz):
 
 norm = lambda s: unicodedata.normalize("NFD", str(s)).encode("ascii", "ignore").decode().lower()
 
-r = requests.get(URL, params={"usuario": os.environ["DMC_USER"], "token": os.environ["DMC_TOKEN"]}, timeout=60)
-r.raise_for_status(); r.encoding = "utf-8"
+r = requests.get(
+    URL,
+    params={
+        "usuario": os.environ["DMC_USER"],
+        "token": os.environ["DMC_TOKEN"],
+    },
+    timeout=60,
+)
+
+# Si Meteochile responde con error, el script se detiene
+# y NO se modifica docs/index.html.
+r.raise_for_status()
+
+# La consulta fue recibida correctamente.
+# Guardamos el momento real de la respuesta en hora de Chile.
+consultado = dt.datetime.now(CL)
+
+r.encoding = "utf-8"
 js = r.json()
+
 recs = []; walk(js, None, recs)
 if not recs:
     sys.exit("No encontré 'indiceUV' en la respuesta:\n" + json.dumps(js, ensure_ascii=False)[:1500])
@@ -76,8 +93,23 @@ for name, detail, code in STATIONS:
 if not any(s["name"] == "Los Ángeles" for s in stations):
     sys.exit("Sin datos de Los Ángeles (referencia de las plantas); no se actualiza la página.")
 
-now = dt.datetime.now(CL)
-data = {"fecha": max(days).isoformat(), "actualizado": now.strftime("%Y-%m-%dT%H:%M"),
+data = {
+    "fecha": max(days).isoformat(),
+
+    # Momento real en que recibimos correctamente
+    # la respuesta de Meteochile.
+    "consultado": consultado.strftime("%Y-%m-%dT%H:%M"),
+
+    "stations": stations,
+
+    "plants": [
+        {"name": n, "town": t, "ref": ref}
+        for n, t, ref in PLANTS
+    ],
+
+    "demo": False,
+}
+
         "stations": stations,
         "plants": [{"name": n, "town": t, "ref": ref} for n, t, ref in PLANTS], "demo": False}
 
