@@ -60,6 +60,17 @@ section{padding:36px 0 6px}
 .plant ul{margin:10px 0 0;padding-left:18px;font-size:.88rem;flex:1}
 .plant li{margin:5px 0}
 .wa{margin-top:16px;font:inherit;font-size:.85rem;font-weight:700;padding:12px 18px;border-radius:99px;border:0;background:var(--teal);color:#fff;cursor:pointer;letter-spacing:.02em}
+.btns{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+.btns .wa{margin:0}
+.im{font:inherit;font-size:.85rem;font-weight:700;padding:11px 18px;border-radius:99px;border:2px solid var(--blue);background:#fff;color:var(--blue);cursor:pointer}
+.im:disabled{opacity:.6}
+.mo{position:fixed;inset:0;background:rgba(10,25,50,.7);display:flex;align-items:center;justify-content:center;padding:16px;z-index:9;overflow:auto}
+.mo[hidden]{display:none}
+.mb{background:#fff;border-radius:16px;padding:14px;max-width:460px;width:100%;text-align:center;max-height:100%;overflow:auto}
+.mb img{width:100%;border-radius:10px;border:1px solid var(--bd)}
+.mb p{font-size:.82rem;color:var(--mu);margin:8px 0}
+.dl{display:block;text-decoration:none;background:var(--blue);color:#fff;font-weight:700;padding:12px;border-radius:99px;margin:8px 0}
+.cl{font:inherit;background:none;border:0;color:var(--mu);cursor:pointer;padding:8px}
 .ft{background:var(--navy);color:#cfdbe6;margin-top:44px;padding:30px 0 34px;font-size:.82rem}
 .ft .cols{display:grid;gap:18px;grid-template-columns:1fr}
 @media(min-width:620px){.ft .cols{grid-template-columns:1fr 1fr}}
@@ -71,7 +82,7 @@ section{padding:36px 0 6px}
 <body>
 <header class="hero"><div class="w">
   <div class="two">
-    <h1>Gestión del <em>riesgo UV</em> en nuestras plantas</h1>
+    <h1>Gestión del <em>Riesgo UV</em> en nuestras plantas</h1>
     <div><p class="pl"><b>+</b>Trabajo seguro al aire libre</p><p class="pl"><b>+</b>Bienestar de las personas</p></div>
   </div>
   <div class="meta"><span id="fecha"></span><span id="upd"></span></div>
@@ -100,6 +111,10 @@ section{padding:36px 0 6px}
     <div class="g2" id="pl"></div>
   </section>
 </main>
+
+<div class="mo" id="mo" hidden><div class="mb"><img id="mi" alt="Imagen informativa del índice UV">
+  <p>Mantén presionada la imagen para guardarla o compartirla.</p>
+  <a class="dl" id="md" download="indice-uv.png">Descargar imagen</a><button class="cl" id="mc">Cerrar</button></div></div>
 
 <footer class="ft"><div class="w">
   <div class="cols">
@@ -136,11 +151,11 @@ const GR=[
  {h:"NECESITA PROTECCIÓN",p:["¡Manténgase a la sombra durante las horas centrales del día!","¡Use camisa, crema de protección solar y sombrero!","¡Use gafas con filtro UV-B y UV-A!"]},
  {h:"NECESITA PROTECCIÓN EXTRA",p:["¡Evite salir durante las horas centrales del día!","¡Busque la sombra!","¡Son imprescindibles camisa, crema de protección solar y sombrero!","¡Use gafas con filtro UV-B y UV-A!"]}
 ];
-[["🟢","Hoy el riesgo es bajo: pueden trabajar con tranquilidad. ¡Que tengan una buena jornada!"],
- ["🟡","Recordemos usar protector solar, lentes y cubrenuca. ¡Cuidémonos entre todos!"],
- ["🟠","Hoy el sol pega fuerte: usen protector, cubrenuca y manga larga, y hagan sus pausas en la sombra. ¡Cuidémonos entre todos!"],
+[["🟢","Hoy el riesgo es bajo: pueden trabajar con tranquilidad. ¡Que tengan una buena jornada! 💙"],
+ ["🟡","Recordemos usar protector solar, lentes y cubrenuca. ¡Cuidémonos entre todos! 💙"],
+ ["🟠","Hoy el sol pega fuerte: usen protector, cubrenuca y manga larga, y hagan sus pausas en la sombra. ¡Cuidémonos entre todos! 💙"],
  ["🔴","Hoy el riesgo es muy alto. Reprogramen las tareas al sol en horas centrales, no se salten las pausas y avisen a su jefatura si sienten molestias. ¡Su salud es lo primero! 💙"],
- ["🟣","Hoy el riesgo es extremo. Eviten las tareas al sol en horas centrales y coordinen con su jefatura. ¡Su salud es lo primero!"]
+ ["🟣","Hoy el riesgo es extremo. Eviten las tareas al sol en horas centrales y coordinen con su jefatura. ¡Su salud es lo primero! 💙"]
 ].forEach((x,i)=>{CATS[i].e=x[0];CATS[i].cierre=x[1]});
 const lvl=u=>Math.max(1,Math.round(u));
 const cat=u=>CATS.find(k=>lvl(u)<=k.b);
@@ -168,11 +183,64 @@ $("pl").innerHTML=DATA.plants.map(p=>{const s=byName(p.ref),k=cat(s.uv);
  <div class="t">${p.town} · referencia: ${s.name} · IUV máx. ${lvl(s.uv)}</div>
  <span class="pill" style="background:${k.c};color:${k.t}">${k.n}</span>
  <ul>${k.r.map(x=>`<li>${x}</li>`).join("")}</ul>
- <button class="wa" data-i="${DATA.plants.indexOf(p)}">Enviar al equipo de ${p.name} por WhatsApp</button></div>`}).join("");
+ <div class="btns"><button class="wa" data-i="${DATA.plants.indexOf(p)}">Enviar al equipo de ${p.name} por WhatsApp</button>
+ <button class="im" data-i="${DATA.plants.indexOf(p)}">Compartir imagen informativa</button></div></div>`}).join("");
 
 $("note").textContent=(DATA.demo?"Vista previa con datos de ejemplo. ":"")+"Los valores corresponden a estaciones de referencia de la Dirección Meteorológica de Chile, no a mediciones dentro de las plantas.";
 
+const FF='Lato,"Segoe UI",system-ui,sans-serif';
+function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
+function wrap(c,t,w){const o=[];let l="";t.split(" ").forEach(a=>{const n=l?l+" "+a:a;if(c.measureText(n).width>w&&l){o.push(l);l=a}else l=n});if(l)o.push(l);return o}
+async function makeImg(p){
+ try{await document.fonts.load('700 40px Lato');await document.fonts.load('400 30px Lato')}catch(e){}
+ const s=byName(p.ref),k=cat(s.uv),v=lvl(s.uv),W=1080,y0=920;
+ const m=document.createElement("canvas").getContext("2d");m.font='400 32px '+FF;
+ const bl=k.r.map(x=>wrap(m,x,860)),nl=bl.reduce((a,b)=>a+b.length,0);
+ const cardH=130+nl*44+bl.length*12+30,H=y0+cardH+190;
+ const cv=document.createElement("canvas");cv.width=W;cv.height=H;const c=cv.getContext("2d");
+ const g=c.createLinearGradient(0,0,0,H);g.addColorStop(0,"#fff");g.addColorStop(.4,"#e3ecfc");g.addColorStop(1,"#a9c1f3");c.fillStyle=g;c.fillRect(0,0,W,H);
+ c.fillStyle="#27385f";c.font='700 64px '+FF;c.fillText("Índice UV de hoy",60,110);
+ c.fillStyle="#3d5080";c.font='400 34px '+FF;c.fillText(fecha.charAt(0).toUpperCase()+fecha.slice(1),60,162);
+ c.save();c.shadowColor="rgba(10,37,64,.18)";c.shadowBlur=30;c.shadowOffsetY=8;c.fillStyle="#fff";rr(c,60,205,960,520,36);c.fill();c.restore();
+ c.fillStyle="#27385f";c.font='700 54px '+FF;c.fillText(p.name,100,285);
+ c.fillStyle="#5f7080";c.font='400 30px '+FF;c.fillText(p.town+" · referencia: "+s.name,100,330);
+ c.fillStyle=k.c;rr(c,100,375,300,300,28);c.fill();
+ c.fillStyle=k.t;c.textAlign="center";c.font='700 26px '+FF;c.fillText("ÍNDICE UV",250,420);c.font='700 190px '+FF;c.fillText(v>=11?"11+":String(v),250,615);
+ c.textAlign="left";
+ c.fillStyle="#27385f";c.font='700 84px '+FF;c.fillText(k.n,440,470);
+ c.fillStyle="#3d5080";c.font='400 32px '+FF;c.fillText("Máximo medido: "+String(s.uv).replace(".",",")+" a las "+s.hora+" h",440,530);
+ c.fillStyle="#0a8cff";c.font='700 28px '+FF;c.fillText(GR[k.g].h,440,590);
+ const tw=80,gp=8;
+ for(let n=1;n<=11;n++){const kk=CATS.find(q=>n<=q.b),x=60+(n-1)*(tw+gp),on=n===Math.min(11,v),y=on?765:780;
+  c.fillStyle=kk.c;rr(c,x,y,tw,110,14);c.fill();
+  if(on){c.lineWidth=7;c.strokeStyle="#27385f";rr(c,x,y,tw,110,14);c.stroke()}
+  c.fillStyle=kk.t;c.textAlign="center";c.font='700 '+(n==11?36:46)+'px '+FF;c.fillText(n==11?"11+":String(n),x+tw/2,y+72)}
+ c.textAlign="left";
+ c.fillStyle="#fff";rr(c,60,y0,960,cardH,36);c.fill();
+ c.fillStyle="#27385f";c.font='700 40px '+FF;c.fillText("Para cuidarnos hoy",100,y0+70);
+ let y=y0+130;c.font='400 32px '+FF;
+ bl.forEach(ls=>{ls.forEach((t,i)=>{if(i===0){c.fillStyle=k.c==="#fff44f"?"#e0c400":k.c;c.beginPath();c.arc(112,y-11,8,0,7);c.fill()}c.fillStyle="#14222f";c.fillText(t,140,y);y+=44});y+=12});
+ c.fillStyle="#27385f";c.font='700 26px '+FF;c.fillText("Fuente: Dirección Meteorológica de Chile",60,H-110);
+ c.fillStyle="#3d5080";c.font='400 24px '+FF;c.fillText("Actualizado: "+upd+" (hora de Chile)",60,H-72);
+ c.fillText("Dato de la estación de referencia, no medido dentro de la planta.",60,H-38);
+ return new Promise(r=>cv.toBlob(r,"image/png"));
+}
+async function shareImg(i){
+ const p=DATA.plants[i],b=document.querySelector('.im[data-i="'+i+'"]'),t=b.textContent;
+ b.textContent="Generando imagen…";b.disabled=true;
+ try{
+  const blob=await makeImg(p);
+  const name="indice-uv-"+p.name.toLowerCase().replace(/[^a-z0-9]+/g,"-")+"-"+(DATA.fecha||new Date().toISOString().slice(0,10))+".png";
+  const f=new File([blob],name,{type:"image/png"});
+  if(navigator.canShare&&navigator.canShare({files:[f]})){
+   try{await navigator.share({files:[f],title:"Índice UV · "+p.name});return}catch(e){if(e.name==="AbortError")return}}
+  const u=URL.createObjectURL(blob);$("mi").src=u;$("md").href=u;$("md").download=name;$("mo").hidden=false;
+ }finally{b.textContent=t;b.disabled=false}
+}
+$("mc").onclick=()=>{$("mo").hidden=true};
+$("mo").onclick=e=>{if(e.target.id==="mo")$("mo").hidden=true};
 document.addEventListener("click",e=>{
+ const bi=e.target.closest(".im");if(bi){shareImg(+bi.dataset.i);return}
  const b=e.target.closest(".wa");if(!b)return;
  const p=DATA.plants[+b.dataset.i],s=byName(p.ref),k=cat(s.uv);
  const F=fecha.charAt(0).toUpperCase()+fecha.slice(1);
