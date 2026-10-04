@@ -5,6 +5,7 @@ from zoneinfo import ZoneInfo
 
 URL = "https://climatologia.meteochile.gob.cl/application/servicios/getRecienteUvb"
 TZ = ZoneInfo("America/Santiago")
+print(">>> generate_uv.py VERSION 3 (estacion por codigo 370033)")
 # Planta -> estación de referencia más cercana (editable)
 # 370033 = María Dolores, Los Ángeles Ad. (Concepción sería 360019)
 SITES = [("Nacimiento", "Planta Santa Fe", "370033"),
