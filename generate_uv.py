@@ -80,21 +80,91 @@ if not recs:
 tz = source_tz(js)
 
 stations, days = [], []
+
+# Fecha actual en Chile
+hoy = dt.datetime.now(CL).date()
+
 for name, detail, code in STATIONS:
-    mine = [(parse(t, tz), v) for n, t, v in recs if n and code in norm(n) and t]
+
+    mine = [
+        (parse(t, tz), v)
+        for n, t, v in recs
+        if n and code in norm(n) and t
+    ]
+
     if not mine:
-        print(f"AVISO: sin datos para {name} ({code}); se omite"); continue
-    day = max(d.date() for d, _ in mine)                      # último día con datos
-    v, t = max((v, d) for d, v in mine if d.date() == day)    # máximo de ese día
-    stations.append({"name": name, "detail": detail, "uv": round(v, 1), "hora": f"{t:%H:%M}"})
-    days.append(day)
-    print(f"{name}: IUV máx {v:.1f} el {day} a las {t:%H:%M}")
+        print(
+            f"AVISO: sin datos para {name} ({code}); se omite"
+        )
+        continue
+
+    # ---------------------------------------------------------
+    # SOLO DATOS DEL DÍA ACTUAL
+    # ---------------------------------------------------------
+    today = [
+        (d, v)
+        for d, v in mine
+        if d.date() == hoy
+    ]
+
+    if not today:
+        print(
+            f"AVISO: todavía no hay datos de hoy "
+            f"({hoy}) para {name} ({code}); se omite"
+        )
+        continue
+
+    # ---------------------------------------------------------
+    # IUV ACTUAL
+    # Última medición disponible de hoy
+    # ---------------------------------------------------------
+    actual_t, actual_v = max(
+        today,
+        key=lambda x: x[0]
+    )
+
+    # ---------------------------------------------------------
+    # IUV MÁXIMO DEL DÍA
+    # Mayor valor registrado hasta ahora
+    # ---------------------------------------------------------
+    max_t, max_v = max(
+        today,
+        key=lambda x: x[1]
+    )
+
+    stations.append({
+        "name": name,
+        "detail": detail,
+
+        # Máximo del día
+        "uv": round(max_v, 1),
+        "hora": f"{max_t:%H:%M}",
+        "max_uv": round(max_v, 1),
+        "max_hora": f"{max_t:%H:%M}",
+
+        # Última medición
+        "actual_uv": round(actual_v, 1),
+        "actual_hora": f"{actual_t:%H:%M}",
+    })
+
+    days.append(hoy)
+
+    print(
+        f"{name}: "
+        f"IUV actual {actual_v:.1f} a las {actual_t:%H:%M} | "
+        f"IUV máximo {max_v:.1f} a las {max_t:%H:%M}"
+    )
+
 
 if not any(s["name"] == "Los Ángeles" for s in stations):
-    sys.exit("Sin datos de Los Ángeles (referencia de las plantas); no se actualiza la página.")
+    sys.exit(
+        f"Sin datos de Los Ángeles para hoy ({hoy}); "
+        "no se actualiza la página."
+    )
+
 
 data = {
-    "fecha": max(days).isoformat(),
+    "fecha": hoy.isoformat(),
 
     # Momento real en que recibimos correctamente
     # la respuesta de Meteochile.
