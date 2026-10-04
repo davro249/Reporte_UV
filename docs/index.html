@@ -125,7 +125,7 @@ section{padding:36px 0 6px}
 </div></footer>
 <script>
 /* DATOS_INICIO */
-const DATA={"fecha": "2026-10-04", "consultado": "2026-10-04T04:51", "stations": [{"name": "Concepción", "detail": "Carriel Sur (360019)", "uv": null, "hora": null, "max_uv": null, "max_hora": null, "actual_uv": null, "actual_hora": null, "forecast_uv": 13.0}, {"name": "Los Ángeles", "detail": "María Dolores (370033)", "uv": null, "hora": null, "max_uv": null, "max_hora": null, "actual_uv": null, "actual_hora": null, "forecast_uv": 13.0}], "plants": [{"name": "Planta Santa Fe", "town": "Nacimiento", "ref": "Los Ángeles"}, {"name": "Planta Laja", "town": "Laja", "ref": "Los Ángeles"}], "forecast": {"uv": 13.0, "fecha": "2026-10-04", "fuente": "Dirección Meteorológica de Chile", "tipo": "Pronóstico UV para día despejado"}, "demo": false};
+const DATA={"fecha": "2026-10-04", "consultado": "2026-10-04T05:06", "stations": [{"name": "Concepción", "detail": "Carriel Sur (360019)", "uv": null, "hora": null, "max_uv": null, "max_hora": null, "actual_uv": null, "actual_hora": null, "forecast_uv": null, "forecast_range": null}, {"name": "Los Ángeles", "detail": "María Dolores (370033)", "uv": null, "hora": null, "max_uv": null, "max_hora": null, "actual_uv": null, "actual_hora": null, "forecast_uv": null, "forecast_range": null}], "plants": [{"name": "Planta Santa Fe", "town": "Nacimiento", "ref": "Los Ángeles"}, {"name": "Planta Laja", "town": "Laja", "ref": "Los Ángeles"}], "forecast": null, "demo": false};
 /* DATOS_FIN */
 const CATS=[
  {b:2,n:"Bajo",c:"#82c341",t:"#10230a",tiles:[1,2],g:0,r:["Sin riesgo para la mayoría de las personas.","Lentes de sol en días muy luminosos."]},
@@ -177,13 +177,14 @@ $("st").innerHTML=DATA.stations.map(s=>{
   const hasForecast=s.forecast_uv!==null&&s.forecast_uv!==undefined;
   const visualUV=hasData?s.max_uv:(hasForecast?s.forecast_uv:0);
   const k=cat(visualUV);
+  const forecastText=s.forecast_range||String(s.forecast_uv).replace(".",",");
   return `<div class="card st">
-    <div class="badge" style="background:${k.c};color:${k.t}"><i>${hasData?"MÁX. UV":"PRONÓSTICO"}</i><b>${hasData?lvl(s.max_uv):(hasForecast?lvl(s.forecast_uv):"—")}</b></div>
+    <div class="badge" style="background:${k.c};color:${k.t}"><i>${hasData?"MÁX. UV":"PRONÓSTICO"}</i><b>${hasData?lvl(s.max_uv):(hasForecast?forecastText:"—")}</b></div>
     <div><h3>${s.name}</h3><p>${s.detail}</p>
       <span class="pill" style="background:${k.c};color:${k.t}">${hasData?k.n:(hasForecast?"Pronóstico UV":"Sin dato")}</span>
       ${hasData?`<p><strong>Máximo:</strong> ${String(s.max_uv).replace(".",",")} a las ${s.max_hora} h</p>`:`<p><strong>Máximo:</strong> todavía sin mediciones de hoy</p>`}
       ${hasActual?`<p><strong>Actual:</strong> ${String(s.actual_uv).replace(".",",")} a las ${s.actual_hora} h</p>`:`<p><strong>Actual:</strong> todavía sin mediciones de hoy</p>`}
-      ${hasForecast?`<p><strong>Pronóstico UV:</strong> ${String(s.forecast_uv).replace(".",",")} <span style="font-size:.72rem">(día despejado)</span></p>`:""}
+      ${hasForecast?`<p><strong>Pronóstico UV:</strong> ${forecastText} <span style="font-size:.72rem">(día despejado)</span></p>`:""}
     </div></div>`;
 }).join("");
 const scaleValues=DATA.stations.map(s=>{
@@ -204,8 +205,9 @@ $("pl").innerHTML=DATA.plants.map(p=>{
   const hasForecast=s.forecast_uv!==null&&s.forecast_uv!==undefined;
   const visualUV=hasData?s.max_uv:(hasForecast?s.forecast_uv:0);
   const k=cat(visualUV);
+  const forecastText=s.forecast_range||String(s.forecast_uv).replace(".",",");
   const nivel=hasData?k.n:(hasForecast?"Pronóstico UV":"Sin dato");
-  const valor=hasData?lvl(s.max_uv):(hasForecast?lvl(s.forecast_uv):"—");
+  const valor=hasData?lvl(s.max_uv):(hasForecast?forecastText:"—");
   return `<div class="card plant" style="--c:${k.c}"><h3>Recomendado para ${p.name}</h3>
   <div class="t">${p.town} · referencia: ${s.name} · ${hasData?"IUV máx. "+valor:(hasForecast?"IUV pronosticado "+valor:"IUV todavía sin dato")}</div>
   <span class="pill" style="background:${k.c};color:${k.t}">${nivel}</span>
@@ -239,7 +241,7 @@ async function makeImg(p){
  c.fillStyle=k.t;c.textAlign="center";c.font='700 26px '+FF;c.fillText("ÍNDICE UV",250,420);c.font='700 190px '+FF;c.fillText(v>=11?"11+":String(v),250,615);
  c.textAlign="left";
  c.fillStyle="#27385f";c.font='700 84px '+FF;c.fillText(k.n,440,470);
- c.fillStyle="#3d5080";c.font='400 32px '+FF;c.fillText(hasData ? "Máximo medido: "+String(s.max_uv).replace(".",",")+" a las "+s.max_hora+" h" : "Pronóstico UV: "+String(s.forecast_uv??"—").replace(".",",")+" (día despejado)",440,530);
+ c.fillStyle="#3d5080";c.font='400 32px '+FF;c.fillText(hasData ? "Máximo medido: "+String(s.max_uv).replace(".",",")+" a las "+s.max_hora+" h" : "Pronóstico UV: "+(s.forecast_range||String(s.forecast_uv??"—").replace(".",","))+" (día despejado)",440,530);
  c.fillStyle="#0a8cff";c.font='700 28px '+FF;c.fillText(GR[k.g].h,440,590);
  const tw=80,gp=8;
  for(let n=1;n<=11;n++){const kk=CATS.find(q=>n<=q.b),x=60+(n-1)*(tw+gp),on=n===Math.min(11,v),y=on?765:780;
@@ -278,7 +280,7 @@ document.addEventListener("click",e=>{
   const visualUV=hasData?s.max_uv:(s.forecast_uv!==null&&s.forecast_uv!==undefined?s.forecast_uv:0);
   const k=cat(visualUV);
   const F=fecha.charAt(0).toUpperCase()+fecha.slice(1);
-  const nivel=hasData?`IUV máximo ${lvl(s.max_uv)}`:(s.forecast_uv!==null&&s.forecast_uv!==undefined?`IUV pronosticado ${lvl(s.forecast_uv)} (día despejado)`:"sin mediciones todavía");
+  const nivel=hasData?`IUV máximo ${lvl(s.max_uv)}`:(s.forecast_uv!==null&&s.forecast_uv!==undefined?`IUV pronosticado ${s.forecast_range||lvl(s.forecast_uv)} (día despejado)`:"sin mediciones todavía");
   const m=[`Hola equipo de *${p.name}* (${p.town}) 👋`,"",`☀️ *Índice UV de hoy · ${F}*`,`${k.e} Nivel de referencia: *${k.n}* (${nivel})`,`📍 Estación de referencia: ${s.name}`,`🕒 Actualizado: ${upd}`,"","*Para cuidarnos hoy:*",...k.r.map(x=>"• "+x),"",k.cierre,"","_Fuente: Dirección Meteorológica de Chile_"].join("\n");
   window.open("https://wa.me/?text="+encodeURIComponent(m),"_blank","noopener");
 });
