@@ -18,16 +18,24 @@ CATS = [(2, "Bajo", "#2e9e4f", "🟢", "No requiere protección especial."),
 norm = lambda s: unicodedata.normalize("NFD", str(s)).encode("ascii", "ignore").decode().lower()
 cat = lambda v: next(c for c in CATS if v <= c[0])
 
+def station_name(d):
+    """Si el dict describe una estación (trae codigoNacional), devuelve 'código nombre'."""
+    low = {k.lower(): v for k, v in d.items()}
+    if "codigonacional" in low:
+        return f"{low['codigonacional']} {low.get('nombreestacion', '')}"
+    return None
+
 def walk(node, name, out):
-    """Recorre el JSON sin asumir su estructura exacta."""
+    """Recorre el JSON. El nombre de la estación puede venir en un dict hermano
+    de la lista de mediciones, así que se busca entre los valores del nivel actual."""
     if isinstance(node, dict):
-        parts = [str(v) for k, v in node.items()
-                 if isinstance(v, (str, int)) and any(s in k.lower() for s in ("nombre", "codigo"))]
-        if parts:
-            name = " ".join(parts)  # código + nombre de la estación más cercana en el JSON
+        name = station_name(node) or name
+        for v in node.values():
+            if isinstance(v, dict) and station_name(v):
+                name = station_name(v)
         low = {k.lower(): v for k, v in node.items()}
-        if "indiceuv" in low:
-            ts = next((v for k, v in low.items() if k in ("momento", "fechahora", "fecha")), None)
+        if "indiceuv" in low and not isinstance(low["indiceuv"], (list, dict)):
+            ts = low.get("momento") or (f"{low['fecha']} {low.get('hora', '00:00:00')}" if "fecha" in low else None)
             try: out.append((name, ts, float(low["indiceuv"])))
             except (TypeError, ValueError): pass
         for v in node.values(): walk(v, name, out)
@@ -35,11 +43,16 @@ def walk(node, name, out):
         for v in node: walk(v, name, out)
 
 def to_local(ts):
-    t = dt.datetime.fromisoformat(str(ts).replace("Z", "").replace("T", " "))
+    s = str(ts).replace("Z", "").replace("T", " ")
+    for f in ("%d-%m-%Y %H:%M:%S", "%Y-%m-%d %H:%M:%S"):
+        try: t = dt.datetime.strptime(s, f); break
+        except ValueError: pass
+    else: raise ValueError(f"Formato de fecha desconocido: {ts}")
     return t.replace(tzinfo=dt.timezone.utc).astimezone(TZ)  # la API entrega UTC
 
 r = requests.get(URL, params={"usuario": os.environ["DMC_USER"], "token": os.environ["DMC_TOKEN"]}, timeout=60)
 r.raise_for_status()
+r.encoding = "utf-8"
 recs = []; walk(r.json(), None, recs)
 if not recs:
     sys.exit("No encontré 'indiceUV' en la respuesta; revisa la estructura:\n" + json.dumps(r.json(), ensure_ascii=False)[:1500])
