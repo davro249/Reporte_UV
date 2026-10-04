@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo
 from html.parser import HTMLParser
 from urllib.parse import urljoin
 
-print(">>> generate_uv.py VERSION 7 (hoy + actual + máximo + pronóstico oficial Biobío)")
+print(">>> generate_uv.py VERSION 8 (diagnóstico del pronóstico oficial)")
 
 URL = "https://climatologia.meteochile.gob.cl/application/servicios/getRecienteUvb"
 FORECAST_URL = "https://www.meteochile.gob.cl/PortalDMC-web/otros_pronosticos/climatologia_pronostico_uv.xhtml"
@@ -85,6 +85,7 @@ class ForecastParser(HTMLParser):
         super().__init__()
         self.text_parts = []
         self.images = []
+        self.others = []
 
     def handle_data(self, data):
         text = data.strip()
@@ -92,11 +93,16 @@ class ForecastParser(HTMLParser):
             self.text_parts.append(text)
 
     def handle_starttag(self, tag, attrs):
-        if tag.lower() == "img":
-            attrs = dict(attrs)
-            src = attrs.get("src")
-            if src:
-                self.images.append(src)
+        a = dict(attrs)
+        t = tag.lower()
+        if t == "img" and a.get("src"):
+            self.images.append(a["src"])
+        elif t in ("iframe", "embed", "source") and a.get("src"):
+            self.others.append((t, a["src"]))
+        elif t == "object" and a.get("data"):
+            self.others.append((t, a["data"]))
+        elif t == "a" and a.get("href") and re.search(r"\.(png|jpe?g|gif|webp|pdf|json)(\?|$)", a["href"], re.I):
+            self.others.append((t, a["href"]))
 
     def get_text(self):
         return " ".join(self.text_parts)
@@ -194,67 +200,75 @@ def ocr_image(image_bytes):
         return ""
 
 
+def forecast_result(chosen, today, reg):
+    return {"uv": range_upper(chosen), "rango": chosen, "fecha": today.isoformat(),
+            "fuente": "Dirección Meteorológica de Chile",
+            "tipo": "Pronóstico UV para día despejado", "region_param": reg}
+
+
 def get_uv_forecast(today):
     print("Consultando pronóstico UV oficial de Meteochile para Biobío (reg=8a)...")
     reg = "8a"
+    headers = {"User-Agent": "Mozilla/5.0 (compatible; ReporteUV/3.0)"}
     try:
-        response = requests.get(
-            FORECAST_URL,
-            params={"reg": reg},
-            timeout=30,
-            headers={"User-Agent": "Mozilla/5.0 (compatible; ReporteUV/3.0)"},
-        )
+        response = requests.get(FORECAST_URL, params={"reg": reg}, timeout=30, headers=headers)
         response.raise_for_status()
         response.encoding = "utf-8"
+        html = response.text
 
         parser = ForecastParser()
-        parser.feed(response.text)
+        parser.feed(html)
+        text = parser.get_text()
+
+        # ---- DIAGNÓSTICO (datos públicos de la DMC; no incluye credenciales) ----
+        print(f"[diag] URL final: {response.url} | estado: {response.status_code} | redirecciones: {[x.status_code for x in response.history]}")
+        print(f"[diag] largo HTML: {len(html)} | texto visible: {text[:300]!r}")
+        css_urls = re.findall(r"url\(['\"]?([^)'\"]+)", html)
+        script_srcs = re.findall(r"<script[^>]+src=[\"']([^\"']+)", html)
+        print(f"[diag] otros recursos (iframe/object/enlaces): {parser.others[:10]}")
+        print(f"[diag] url() en CSS/HTML: {css_urls[:10]}")
+        print(f"[diag] scripts externos: {script_srcs[:10]}")
+        print(f"[diag] el HTML menciona 'biobio': {'biobio' in norm(html)} | 'concepcion': {'concepcion' in norm(html)}")
+        # -------------------------------------------------------------------------
 
         # 1) Texto HTML, si la DMC lo entrega directamente.
-        chosen = choose_range_from_text(parser.get_text(), today)
+        chosen = choose_range_from_text(text, today)
         if chosen:
             print(f"Pronóstico UV oficial encontrado en HTML: {chosen}")
-            return {
-                "uv": range_upper(chosen), "rango": chosen,
-                "fecha": today.isoformat(),
-                "fuente": "Dirección Meteorológica de Chile",
-                "tipo": "Pronóstico UV para día despejado",
-                "region_param": reg,
-            }
+            return forecast_result(chosen, today, reg)
 
-        # 2) La página actual de DMC puede presentar el pronóstico como imagen.
-        image_urls = []
-        for src in parser.images:
-            full = urljoin(response.url, src)
-            if full not in image_urls:
-                image_urls.append(full)
+        # 2) Imágenes (y otros recursos) que puedan contener la tabla del pronóstico.
+        candidates = []
+        for src in parser.images + [u for _, u in parser.others] + css_urls:
+            if src not in candidates and (src.startswith("data:image") or re.search(r"\.(png|jpe?g|gif|webp)(\?|$)", src, re.I) or src in parser.images):
+                candidates.append(src)
+        print(f"Recursos de imagen candidatos: {len(candidates)}")
 
-        print(f"Imágenes encontradas en la página de pronóstico: {len(image_urls)}")
-        for image_url in image_urls:
+        for src in candidates:
             try:
-                img_response = requests.get(
-                    image_url, timeout=20,
-                    headers={"User-Agent": "Mozilla/5.0 (compatible; ReporteUV/3.0)"},
-                )
-                img_response.raise_for_status()
-                content_type = img_response.headers.get("content-type", "")
-                if not content_type.startswith("image/"):
-                    continue
-                ocr_text = ocr_image(img_response.content)
+                if src.startswith("data:image"):
+                    content, ctype, label = base64.b64decode(src.split(",", 1)[1]), "data-uri", "data:image..."
+                else:
+                    label = urljoin(response.url, src)
+                    img_response = requests.get(label, timeout=20, headers=headers)
+                    img_response.raise_for_status()
+                    ctype = img_response.headers.get("content-type", "")
+                    content = img_response.content
+                    if not ctype.startswith("image/"):
+                        print(f"[diag] omitido (no es imagen): {label} · {ctype}")
+                        continue
+                print(f"[diag] imagen: {label[:120]} · {ctype} · {len(content)} bytes")
+                ocr_text = ocr_image(content)
+                print("[diag] OCR (inicio):", re.sub(r"\s+", " ", ocr_text)[:300])
                 chosen = choose_range_from_text(ocr_text, today)
                 if chosen:
                     print(f"Pronóstico UV oficial encontrado mediante imagen/OCR: {chosen}")
-                    return {
-                        "uv": range_upper(chosen), "rango": chosen,
-                        "fecha": today.isoformat(),
-                        "fuente": "Dirección Meteorológica de Chile",
-                        "tipo": "Pronóstico UV para día despejado",
-                        "region_param": reg,
-                    }
-            except requests.RequestException:
+                    return forecast_result(chosen, today, reg)
+            except (requests.RequestException, ValueError, IndexError) as exc:
+                print(f"[diag] no se pudo procesar un recurso: {exc}")
                 continue
 
-        print("AVISO: Meteochile sí responde, pero el pronóstico no está expuesto como texto legible; no se inventará un valor.")
+        print("AVISO: Meteochile responde, pero el pronóstico no está expuesto como texto legible; no se inventará un valor.")
         return None
 
     except requests.RequestException as exc:
