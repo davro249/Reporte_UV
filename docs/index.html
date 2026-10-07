@@ -124,8 +124,8 @@ section{padding:36px 0 6px}
 </main>
 
 <div class="mo" id="mo" hidden><div class="mb"><img id="mi" alt="Imagen informativa del índice UV">
-  <p>Mantén presionada la imagen para guardarla o compartirla.</p>
-  <a class="dl" id="md" download="indice-uv.png">Descargar imagen</a><button class="cl" id="mc">Cerrar</button></div></div>
+  <p>1) Descarga la imagen. 2) Abre WhatsApp con el texto y adjunta la imagen.</p>
+  <a class="dl" id="md" download="indice-uv.png">1) Descargar imagen</a><a class="dl" id="mw" target="_blank" rel="noopener">2) Abrir WhatsApp con el texto</a><button class="cl" id="mc">Cerrar</button></div></div>
 
 <footer class="ft"><div class="w">
   <div class="cols">
@@ -328,8 +328,7 @@ function render(){
     <div class="t">${p.town} · referencia: ${s.name} · ${f?"IUV pronosticado "+f.text:"IUV sin pronóstico"}</div>
     <span class="pill" style="background:${k.c};color:${k.t}">${f?k.n:"Sin dato"}</span>
     ${f?`<ul>${k.r.map(x=>`<li>${x}</li>`).join("")}</ul>`:`<ul><li>Aún no hay pronóstico UV para hoy. Presiona «Actualizar» para consultar nuevamente.</li></ul>`}
-    <div class="btns"><button class="wa" data-i="${i}" ${f?"":"disabled"}>Enviar al equipo de ${p.name} por WhatsApp</button>
-    <button class="im" data-i="${i}" ${f?"":"disabled"}>Compartir imagen informativa</button></div></div>`;
+    <div class="btns"><button class="wa" data-i="${i}" ${f?"":"disabled"}>Enviar al equipo de ${p.name} por WhatsApp</button></div></div>`;
   }).join("");
 
   $("note").textContent="Los valores corresponden al pronóstico oficial de la Dirección Meteorológica de Chile para una localidad de referencia, no a mediciones dentro de las plantas.";
@@ -376,17 +375,29 @@ async function makeImg(p){
  c.fillText("Pronóstico de la localidad de referencia, no medido en la planta.",60,H-38);
  return new Promise(r=>cv.toBlob(r,"image/png"));
 }
-async function shareImg(i){
- const p=PLANTS[i],b=document.querySelector('.im[data-i="'+i+'"]'),t=b.textContent;
- b.textContent="Generando imagen…";b.disabled=true;
+function buildMsg(p){
+ const s=byName(p.ref),f=s.fc;if(!f)return null;
+ const k=cat(f.hi),F=fmtLong(STATE.hoy);
+ return [`Hola equipo de *${p.name}* (${p.town}) 👋`,"",`☀️ *Índice UV de hoy · ${F}*`,`${k.e} Nivel de referencia: *${k.n}* (IUV pronosticado ${f.text}, día despejado)`,`📍 Localidad de referencia: ${s.name}`,`🕒 Consultado: ${consultaTxt}`,"","*Para cuidarnos hoy:*",...k.r.map(x=>"• "+x),"",k.cierre,"","_Fuente: Dirección Meteorológica de Chile_"].join("\n");
+}
+async function sendWA(i){
+ const p=PLANTS[i],btn=document.querySelector('.wa[data-i="'+i+'"]'),t=btn.textContent;
+ const msg=buildMsg(p);if(!msg)return;
+ btn.textContent="Preparando imagen…";btn.disabled=true;
  try{
   const blob=await makeImg(p);
   const name="indice-uv-"+p.name.toLowerCase().replace(/[^a-z0-9]+/g,"-")+"-"+STATE.hoy+".png";
-  const f=new File([blob],name,{type:"image/png"});
-  if(navigator.canShare&&navigator.canShare({files:[f]})){
-   try{await navigator.share({files:[f],title:"Índice UV · "+p.name});return}catch(e){if(e.name==="AbortError")return}}
-  const u=URL.createObjectURL(blob);$("mi").src=u;$("md").href=u;$("md").download=name;$("mo").hidden=false;
- }finally{b.textContent=t;b.disabled=false}
+  const file=new File([blob],name,{type:"image/png"});
+  // Celular: imagen + texto en un solo envío; se elige WhatsApp en el menú de compartir
+  if(navigator.canShare&&navigator.canShare({files:[file]})){
+   try{await navigator.share({files:[file],text:msg,title:"Índice UV · "+p.name});return}catch(e){if(e.name==="AbortError")return}
+  }
+  // Respaldo (computador): descargar imagen + abrir WhatsApp con el texto
+  const u=URL.createObjectURL(blob);
+  $("mi").src=u;$("md").href=u;$("md").download=name;
+  $("mw").href="https://wa.me/?text="+encodeURIComponent(msg);
+  $("mo").hidden=false;
+ }finally{btn.textContent=t;btn.disabled=false}
 }
 
 /* ===================== EVENTOS ===================== */
@@ -394,12 +405,7 @@ $("ref").onclick=actualizar;
 $("mc").onclick=()=>{$("mo").hidden=true};
 $("mo").onclick=e=>{if(e.target.id==="mo")$("mo").hidden=true};
 document.addEventListener("click",e=>{
- const bi=e.target.closest(".im");if(bi){shareImg(+bi.dataset.i);return}
- const b=e.target.closest(".wa");if(!b)return;
- const p=PLANTS[+b.dataset.i],s=byName(p.ref),f=s.fc;if(!f)return;
- const k=cat(f.hi),F=fmtLong(STATE.hoy);
- const m=[`Hola equipo de *${p.name}* (${p.town}) 👋`,"",`☀️ *Índice UV de hoy · ${F}*`,`${k.e} Nivel de referencia: *${k.n}* (IUV pronosticado ${f.text}, día despejado)`,`📍 Localidad de referencia: ${s.name}`,`🕒 Consultado: ${consultaTxt}`,"","*Para cuidarnos hoy:*",...k.r.map(x=>"• "+x),"",k.cierre,"","_Fuente: Dirección Meteorológica de Chile_"].join("\n");
- window.open("https://wa.me/?text="+encodeURIComponent(m),"_blank","noopener");
+ const b=e.target.closest(".wa");if(b)sendWA(+b.dataset.i);
 });
 
 render();
