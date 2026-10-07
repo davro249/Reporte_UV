@@ -173,6 +173,7 @@ const lvl=u=>Math.max(1,Math.round(u));
 const cat=u=>CATS.find(k=>lvl(u)<=k.b);
 const $=id=>document.getElementById(id);
 const norm=s=>String(s).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+const decode=s=>{const t=document.createElement("textarea");t.innerHTML=String(s);return t.value}; // CONCEPCI&Oacute;N -> CONCEPCIÓN
 const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
 const p2=n=>String(n).padStart(2,"0");
 
@@ -216,7 +217,7 @@ function extractEntries(text){
   const re=/\{[^{}]*fechapron[^{}]*\}/gi;
   while((m=re.exec(text))){
     const o=parseKV(m[0]);
-    if(o.fechapron!==undefined&&o.indicepron!==undefined)out.push({fecha:o.fechapron,indice:o.indicepron,ctx:norm(m[0])});
+    if(o.fechapron!==undefined&&o.indicepron!==undefined)out.push({fecha:o.fechapron,indice:o.indicepron,ctx:norm(decode(o.nombre||m[0]))});
   }
   if(out.length)return out;
   // Respaldo: pares fechapron ... indicepron en cualquier formato
@@ -228,11 +229,13 @@ function extractEntries(text){
 // 1) fetch directo; 2) si el navegador lo bloquea (CORS), carga como <script> y lee las variables nuevas
 function viaScript(){
   return new Promise((res,rej)=>{
+    window.RadiacionUVB=[]; // el archivo solo hace RadiacionUVB.push({...}); la lista debe existir antes
     const before=new Set(Object.getOwnPropertyNames(window));
     const s=document.createElement("script");
     s.src=SRC+"&_="+Date.now();
     s.onload=()=>{
       const parts=[];
+      try{(window.RadiacionUVB||[]).forEach(o=>parts.push(JSON.stringify(o)))}catch(e){}
       Object.getOwnPropertyNames(window).forEach(k=>{
         if(!before.has(k)){try{parts.push(JSON.stringify(window[k]))}catch(e){}}
       });
