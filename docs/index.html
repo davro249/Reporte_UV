@@ -3,14 +3,78 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Índice UV · Región del Biobío</title>
+<title>Índice Radiación UV</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&family=Open+Sans:wght@700&display=swap">
 <style>
-:root{color-scheme:light;--navy:#27385f;--ind:#1e2f78;--blue:#0a8cff;--teal:#0a8cff;--tx:#14222f;--mu:#5f7080;--bg:#fff;--soft:#f3f6f9;--bd:#e1e7ed;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root{color-scheme:light;--navy:#27385f;--ind:#1e2f78;--blue:#0a8cff;--teal:#0a8cff;--tx:#14222f;--mu:#5f7080;--bg:#fff;--soft:#f3f6f9;--bd:#e1e7ed;box-sizing:border-box}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--tx);font-family:Lato,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.5}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:Lato,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.5;padding-bottom:env(safe-area-inset-bottom,0px)}
 .w{max-width:1000px;margin:0 auto;padding:0 18px}
+
+/* ---------- Estructura: panel lateral desplegable + contenido ---------- */
+.app{display:flex;min-height:100vh}
+.main{flex:1;min-width:0}
+.topbar{display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:20;background:var(--navy);color:#fff;padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top,0px));font-weight:900;font-size:1rem}
+.burger{flex:none;width:42px;height:42px;border-radius:12px;border:0;background:rgba(255,255,255,.14);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:0}
+.burger:hover{background:rgba(255,255,255,.26)}
+.burger i{display:block;width:20px;height:2.5px;border-radius:2px;background:#fff}
+.side{position:fixed;left:0;top:0;height:100vh;height:100dvh;width:290px;max-width:86vw;transform:translateX(-100%);visibility:hidden;transition:transform .25s ease,visibility 0s .25s;background:var(--navy);color:#fff;display:flex;flex-direction:column;padding:16px 14px;padding-top:calc(16px + env(safe-area-inset-top,0px));z-index:40;overflow-y:auto}
+body.open .side{transform:none;visibility:visible;transition:transform .25s ease,visibility 0s;box-shadow:0 0 40px rgba(0,0,0,.35)}
+.scrim{display:block;position:fixed;inset:0;background:rgba(10,25,50,.55);z-index:35;opacity:0;pointer-events:none;transition:opacity .25s}
+body.open .scrim{opacity:1;pointer-events:auto}
+.sb-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:22px;min-height:44px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:900;font-size:1rem;line-height:1.15}
+.brand .sun{flex:none;width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#ffd23f,#f0a30a);display:grid;place-items:center;font-size:1.2rem}
+.sbt{flex:none;width:34px;height:34px;border-radius:10px;border:0;background:rgba(255,255,255,.12);color:#fff;font-size:1rem;cursor:pointer;display:grid;place-items:center}
+.sbt:hover{background:rgba(255,255,255,.22)}
+.side nav{display:flex;flex-direction:column;gap:6px}
+.side nav a{display:flex;align-items:center;gap:12px;color:#dbe5f7;text-decoration:none;padding:11px 12px;border-radius:12px;font-weight:700;font-size:.92rem}
+.side nav a .ico{flex:none;width:26px;text-align:center;font-size:1.15rem}
+.side nav a:hover{background:rgba(255,255,255,.1)}
+.side nav a.on{background:var(--blue);color:#fff}
+.sb-bottom{margin-top:auto;padding-top:18px}
+.pinbtn{display:none;align-items:center;gap:10px;width:100%;padding:11px 12px;border-radius:12px;border:2px dashed rgba(255,255,255,.35);background:none;color:#dbe5f7;font:inherit;font-weight:700;font-size:.86rem;cursor:pointer;text-align:left}
+.pinbtn:hover{background:rgba(255,255,255,.08)}
+.pinbtn.on{background:rgba(255,255,255,.14);border-style:solid;color:#fff}
+.sb-foot{margin-top:14px;font-size:.72rem;opacity:.7;line-height:1.35;padding:0 6px}
+@media(min-width:900px){
+  .pinbtn{display:flex}
+  body.pinned .side{position:sticky;transform:none;visibility:visible;box-shadow:none;transition:none;flex:none}
+  body.pinned .topbar{display:none}
+  body.pinned .scrim{display:none}
+  body.pinned #sbt{display:none}
+}
+
+/* ---------- Portada ---------- */
+.cover{position:relative;overflow:hidden;min-height:calc(100vh - 62px);min-height:calc(100svh - 62px - env(safe-area-inset-top,0px));display:flex;flex-direction:column;background:linear-gradient(180deg,#fff 0%,#e3ecfc 24%,#abc2f3 56%,#6f94e3 100%);padding:0}
+@media(min-width:900px){body.pinned .cover{min-height:100vh;min-height:100svh}}
+.sunfx{position:absolute;top:-130px;right:-130px;width:420px;height:420px;border-radius:50%;background:radial-gradient(circle,#fffbd0 0%,#ffd84a 34%,rgba(255,216,74,0) 66%);pointer-events:none}
+.sunfx::after{content:"";position:absolute;inset:-40px;border-radius:50%;background:repeating-conic-gradient(rgba(255,255,255,.55) 0 5deg,transparent 5deg 15deg);-webkit-mask-image:radial-gradient(circle,#000 28%,transparent 68%);mask-image:radial-gradient(circle,#000 28%,transparent 68%);animation:rot 80s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.sunfx::after,.rf.spin .ic{animation:none!important}}
+.cover-in{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;justify-content:center;padding-top:44px;padding-bottom:44px;width:100%}
+.eyebrow{display:inline-block;align-self:flex-start;background:rgba(255,255,255,.78);color:var(--navy);border-radius:99px;padding:5px 14px;font-size:.74rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin:0 0 12px}
+.cover h1{margin:8px 0 14px;font-size:clamp(2rem,6.4vw,3.6rem);line-height:1.08;font-weight:700;color:var(--navy);max-width:16em}
+.cover h1 em{font-style:normal;color:var(--blue)}
+.lead{max-width:34em;font-size:1.05rem;color:#3d5080;margin:0}
+.uvbar{display:flex;gap:4px;margin-top:24px;max-width:520px}
+.uvbar span{flex:1;height:10px;border-radius:99px}
+.tabs{display:grid;gap:14px;grid-template-columns:1fr;margin-top:34px}
+.tabbtn{display:flex;align-items:center;gap:16px;text-decoration:none;background:#fff;border-radius:20px;padding:18px 20px;color:var(--navy);box-shadow:0 8px 24px rgba(25,45,110,.2);border:2px solid transparent;transition:transform .15s,border-color .15s}
+.tabbtn:hover,.tabbtn:focus-visible{transform:translateY(-3px);border-color:var(--blue);outline:0}
+.tabbtn .ti{flex:none;width:54px;height:54px;border-radius:16px;display:grid;place-items:center;font-size:1.6rem;background:#e3ecfc}
+.tabbtn b{display:block;font-size:1.1rem;line-height:1.25}
+.tabbtn small{display:block;color:var(--mu);font-size:.82rem;font-weight:400;line-height:1.35;margin-top:2px}
+.tabbtn .ar{margin-left:auto;font-size:1.5rem;color:var(--blue)}
+@media(min-width:760px){
+  .tabs{grid-template-columns:repeat(3,1fr)}
+  .tabbtn{flex-direction:column;align-items:flex-start;gap:12px;padding:20px}
+  .tabbtn .ar{margin-left:0;margin-top:auto}
+}
+
+/* ---------- Vistas de informe ---------- */
 .hero{background:linear-gradient(180deg,#fff 0%,#e3ecfc 36%,#abc2f3 76%,#85a5e8 100%);padding:46px 0 36px}
 .two{display:grid;gap:18px;grid-template-columns:1fr}
 @media(min-width:700px){.two{grid-template-columns:1.1fr 1fr;align-items:center;gap:36px}}
@@ -23,13 +87,13 @@ body{margin:0;background:var(--bg);color:var(--tx);font-family:Lato,system-ui,-a
 .rf{font:inherit;font-size:.82rem;font-weight:700;padding:6px 16px;border-radius:99px;border:0;background:var(--blue);color:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .rf:disabled{opacity:.65;cursor:wait}
 .rf .ic{display:inline-block}
-.rf.spin .ic{animation:sp .8s linear infinite}
-@keyframes sp{to{transform:rotate(360deg)}}
+.rf.spin .ic{animation:rot .8s linear infinite}
 .err{display:none;margin-top:14px;background:#fdecec;color:#8a1c1c;border-radius:12px;padding:10px 14px;font-size:.84rem;font-weight:700}
 .pillars{display:grid;gap:18px;grid-template-columns:1fr;margin-top:34px;text-align:center;color:#fff;text-shadow:0 1px 8px rgba(25,45,110,.35)}
 @media(min-width:700px){.pillars{grid-template-columns:repeat(3,1fr)}}
 .pillars h3{margin:0;font-size:1.15rem;font-weight:700;letter-spacing:.01em}
 .pillars p{margin:4px 0 0;font-size:.92rem;font-weight:400}
+.cover .pillars{text-align:center;max-width:none;gap:14px}
 section{padding:36px 0 6px}
 .sh{display:flex;align-items:flex-end;gap:14px;margin-bottom:6px}
 .sh .n{font-size:3rem;font-weight:900;line-height:.9;color:#d3e0f7}
@@ -65,17 +129,53 @@ section{padding:36px 0 6px}
 .plant .t{font-size:.8rem;color:var(--mu);margin:2px 0 8px}
 .plant ul{margin:10px 0 0;padding-left:18px;font-size:.88rem;flex:1}
 .plant li{margin:5px 0}
-.wa{margin-top:16px;font:inherit;font-size:.85rem;font-weight:700;padding:12px 18px;border-radius:99px;border:0;background:var(--teal);color:#fff;cursor:pointer;letter-spacing:.02em}
+.wa,.gen{margin-top:16px;font:inherit;font-size:.85rem;font-weight:700;padding:12px 18px;border-radius:99px;border:0;background:var(--teal);color:#fff;cursor:pointer;letter-spacing:.02em}
 .btns{display:flex;flex-direction:column;gap:10px;margin-top:16px}
-.btns .wa{margin:0}
-.im{font:inherit;font-size:.85rem;font-weight:700;padding:11px 18px;border-radius:99px;border:2px solid var(--blue);background:#fff;color:var(--blue);cursor:pointer}
-.im:disabled,.wa:disabled{opacity:.5;cursor:not-allowed}
-.mo{position:fixed;inset:0;background:rgba(10,25,50,.7);display:flex;align-items:center;justify-content:center;padding:16px;z-index:9;overflow:auto}
-.mo[hidden]{display:none}
+.btns .wa,.btns .gen{margin:0}
+.wa:disabled,.gen:disabled{opacity:.5;cursor:not-allowed}
+
+/* ---------- Informe personalizado ---------- */
+.inp{width:100%;font:inherit;font-size:1rem;padding:12px 14px;border:2px solid var(--bd);border-radius:12px;background:#fff;color:var(--tx)}
+.inp:focus{outline:0;border-color:var(--blue)}
+.fgrid{display:grid;gap:14px;grid-template-columns:1fr;margin-top:6px}
+@media(min-width:620px){.fgrid{grid-template-columns:1fr 1fr}}
+.fgrid label{display:block;font-size:.82rem;font-weight:700;color:var(--navy)}
+.fgrid .inp{margin-top:6px}
+.lbl{margin:20px 0 8px;font-size:.82rem;font-weight:700;color:var(--navy)}
+.segs{display:grid;grid-template-columns:1fr;gap:10px}
+@media(min-width:620px){.segs.two{grid-template-columns:1fr 1fr}}
+@media(min-width:760px){.segs.three{grid-template-columns:repeat(3,1fr)}}
+.seg{font:inherit;font-weight:700;font-size:.95rem;padding:14px;border-radius:14px;border:2px solid var(--bd);background:#fff;color:var(--navy);cursor:pointer;text-align:left}
+.seg small{display:block;font-weight:400;color:var(--mu);font-size:.78rem}
+.seg.on{border-color:var(--blue);background:#eaf4ff;box-shadow:0 0 0 3px rgba(10,140,255,.15)}
+.sres-list{margin-top:12px;border:1px solid var(--bd);border-radius:14px;max-height:340px;overflow:auto;background:#fff}
+.sres{display:block;width:100%;text-align:left;font:inherit;background:none;border:0;border-bottom:1px solid var(--bd);padding:12px 14px;cursor:pointer;color:var(--tx)}
+.sres:last-child{border-bottom:0}
+.sres:hover{background:var(--soft)}
+.sres.on{background:#eaf4ff;box-shadow:inset 4px 0 0 var(--blue)}
+.sres b{display:block;color:var(--navy);font-size:.95rem}
+.sres small{color:var(--mu);font-size:.76rem}
+.empty{padding:16px;color:var(--mu);font-size:.88rem;margin:0}
+.acc{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;font:inherit;font-weight:700;font-size:.95rem;text-align:left;padding:14px 16px;border-radius:14px;border:2px solid var(--blue);background:#eaf4ff;color:var(--navy);cursor:pointer}
+.acc .car{flex:none;transition:transform .2s}
+.acc[aria-expanded="true"] .car{transform:rotate(180deg)}
+.accb{margin-top:12px}
+.badge b.xs{font-size:1.15rem;line-height:2}
+.tile.tsel{cursor:pointer;transition:transform .12s}
+.tile.tsel:hover{transform:translateY(-2px)}
+.tile.tsel:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.gen.alt{background:#fff;color:var(--blue);border:2px solid var(--blue)}
+.gen.alt:disabled{opacity:.5}
+select.inp{appearance:auto;cursor:pointer}
+.mblock{margin-top:22px;padding:16px;border:2px dashed var(--bd);border-radius:16px;background:var(--soft)}
+.mblock .lbl{margin-top:0}
+
+.mo{position:fixed;inset:0;background:rgba(10,25,50,.7);display:flex;align-items:center;justify-content:center;padding:16px;z-index:60;overflow:auto}
 .mb{background:#fff;border-radius:16px;padding:14px;max-width:460px;width:100%;text-align:center;max-height:100%;overflow:auto}
 .mb img{width:100%;border-radius:10px;border:1px solid var(--bd)}
 .mb p{font-size:.82rem;color:var(--mu);margin:8px 0}
 .dl{display:block;text-decoration:none;background:var(--blue);color:#fff;font-weight:700;padding:12px;border-radius:99px;margin:8px 0}
+button.dl{width:100%;border:0;font:inherit;font-weight:700;cursor:pointer}
 .cl{font:inherit;background:none;border:0;color:var(--mu);cursor:pointer;padding:8px}
 .ft{background:var(--navy);color:#cfdbe6;margin-top:44px;padding:30px 0 34px;font-size:.82rem}
 .ft .cols{display:grid;gap:18px;grid-template-columns:1fr}
@@ -86,65 +186,84 @@ section{padding:36px 0 6px}
 </style>
 </head>
 <body>
-<header class="hero"><div class="w">
-  <div class="two">
-    <h1>Gestión del <em>Riesgo UV</em> en nuestras plantas</h1>
-    <div><p class="pl"><b>+</b>Trabajo seguro al aire libre</p><p class="pl"><b>+</b>Bienestar de las personas</p></div>
-  </div>
-  <div class="meta">
-    <span id="fecha"></span>
-    <button class="rf" id="ref" type="button"><span class="ic">↻</span><span id="reft">Actualizar</span></button>
-    <span id="upd"></span>
-  </div>
-  <div class="err" id="err" role="alert"></div>
-  <div class="pillars">
-    <div><h3>FUENTE OFICIAL</h3><p>Dirección Meteorológica de Chile</p></div>
-    <div><h3>ACTUALIZACIÓN MANUAL</h3><p>Presiona «Actualizar» para consultar el pronóstico vigente</p></div>
-    <div><h3>PREVENCIÓN</h3><p>Recomendaciones para cada planta</p></div>
-  </div>
-</div></header>
+<div class="app">
 
-<main class="w">
-  <section>
-    <div class="sh"><span class="n">01</span><h2>Pronóstico UV de hoy</h2></div><div class="bar"></div>
-    <p class="sub">Pronóstico oficial del índice UV para el día en curso (día despejado).</p>
-    <div class="g2" id="st"></div>
-  </section>
-  <section>
-    <div class="sh"><span class="n">02</span><h2>Escala del índice UV</h2></div><div class="bar"></div>
-    <p class="sub">El borde marca el nivel pronosticado para hoy.</p>
-    <div class="scale" id="scale"></div>
-    <div class="grp" id="grp"></div>
-  </section>
-  <section>
-    <div class="sh"><span class="n">03</span><h2>Prevención por planta</h2></div><div class="bar"></div>
-    <p class="sub">Recomendaciones según la localidad de referencia más cercana a cada planta.</p>
-    <div class="g2" id="pl"></div>
-  </section>
-</main>
+  <aside class="side" id="side" aria-label="Menú de navegación">
+    <div class="sb-top">
+      <div class="brand"><span class="sun">☀️</span><span class="brand-t">Índice Radiación UV</span></div>
+      <button class="sbt" id="sbt" type="button" aria-label="Cerrar menú">✕</button>
+    </div>
+    <nav>
+      <a href="#inicio" data-nav="inicio"><span class="ico">🏠</span><span class="lb">Inicio</span></a>
+      <a href="#pronostico" data-nav="pronostico"><span class="ico">📅</span><span class="lb">Pronóstico UV</span></a>
+      <a href="#observado" data-nav="observado"><span class="ico">📡</span><span class="lb">UV Observado</span></a>
+      <a href="#personalizado" data-nav="personalizado"><span class="ico">✏️</span><span class="lb">Informe personalizado</span></a>
+    </nav>
+    <div class="sb-bottom">
+      <button class="pinbtn" id="pin" type="button" aria-pressed="false"><span>📌</span><span id="pint">Fijar Menú</span></button>
+      <div class="sb-foot">Fuente: Dirección Meteorológica de Chile</div>
+    </div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
 
+  <div class="main">
+    <div class="topbar"><button class="burger" id="burger" type="button" aria-label="Abrir menú"><i></i><i></i><i></i></button><span>Índice Radiación UV</span></div>
+
+    <!-- PORTADA -->
+    <div class="view" id="v-inicio">
+      <section class="cover">
+        <div class="sunfx" aria-hidden="true"></div>
+        <div class="w cover-in">
+          <span class="eyebrow">Prevención y seguridad laboral</span>
+          <h1>Gestión Preventiva de <em>Radiación UV</em> en Nuestras Operaciones</h1>
+          <p class="lead">Pronóstico de radiación UV y medidas de protección para nuestras operaciones en planta.</p>
+          <div class="uvbar" aria-hidden="true">
+            <span style="background:#82c341"></span><span style="background:#82c341"></span>
+            <span style="background:#fff44f"></span><span style="background:#fff44f"></span><span style="background:#fff44f"></span>
+            <span style="background:#f0a30a"></span><span style="background:#f0a30a"></span>
+            <span style="background:#e31b1b"></span><span style="background:#e31b1b"></span><span style="background:#e31b1b"></span>
+            <span style="background:#a3239b"></span>
+          </div>
+          <div class="tabs">
+            <a class="tabbtn" href="#pronostico"><span class="ti">📅</span><span><b>Pronóstico del índice UV</b><small>Nivel esperado para hoy en Concepción y Los Ángeles</small></span><span class="ar">→</span></a>
+            <a class="tabbtn" href="#observado"><span class="ti">📡</span><span><b>Índice UV observado</b><small>Observación actual para Concepción y Los Ángeles</small></span><span class="ar">→</span></a>
+            <a class="tabbtn" href="#personalizado"><span class="ti">✏️</span><span><b>Informe personalizado</b><small>Elige cualquier estación, escribe tu planta y genera tu propia imagen</small></span><span class="ar">→</span></a>
+          </div>
+          <div class="pillars">
+            <div><h3>FUENTE OFICIAL</h3><p>Dirección Meteorológica de Chile</p></div>
+            <div><h3>ACTUALIZACIÓN MANUAL</h3><p>Consulta cuando la necesites</p></div>
+            <div><h3>PREVENCIÓN</h3><p>Recomendaciones para cada planta</p></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Las vistas siguientes se generan por JS -->
+    <div class="view" id="v-pronostico" hidden></div>
+    <div class="view" id="v-observado" hidden></div>
+    <div class="view" id="v-personalizado" hidden></div>
+  </div>
+</div>
+
+<!-- Ventana: envío por WhatsApp (respaldo en computador) -->
 <div class="mo" id="mo" hidden><div class="mb"><img id="mi" alt="Imagen informativa del índice UV">
   <p>1) Descarga la imagen. 2) Abre WhatsApp con el texto y adjunta la imagen.</p>
   <a class="dl" id="md" download="indice-uv.png">1) Descargar imagen</a><a class="dl" id="mw" target="_blank" rel="noopener">2) Abrir WhatsApp con el texto</a><button class="cl" id="mc">Cerrar</button></div></div>
 
-<footer class="ft"><div class="w">
-  <div class="cols">
-    <div><h5>Fuente</h5><p>Dirección Meteorológica de Chile, pronóstico del índice de radiación UV.</p></div>
-    <div><h5>Actualización</h5><p id="upd2">Aún sin consulta.</p></div>
-  </div>
-  <p class="note" id="note"></p>
-</div></footer>
+<!-- Ventana: imagen del informe personalizado -->
+<div class="mo" id="mo2" hidden><div class="mb"><img id="mi2" alt="Informe UV personalizado">
+  <p>Tu imagen está lista. Descárgala o compártela directamente.</p>
+  <a class="dl" id="md2" download="indice-uv.png">Descargar imagen</a><button class="dl" id="ms2" type="button" hidden>Compartir…</button><button class="cl" id="mc2">Cerrar</button></div></div>
 
 <script>
 /* ===================== CONFIGURACIÓN ===================== */
 const SRC="https://archivos.meteochile.gob.cl/portaldmc/meteochile/js/indice_radiacion.js?version=1";
 const TZ="America/Santiago";
-// aliases: textos (sin tildes, minúsculas) con que se busca la localidad dentro del archivo de Meteochile
 const STATIONS=[
-  {name:"Concepción",detail:"Pronóstico para Concepción",aliases:["concepcion"]},
-  {name:"Los Ángeles",detail:"Pronóstico para Los Ángeles",aliases:["los angeles"]}
+  {name:"Concepción",code:"360019",aliases:["concepcion"],fdetail:"Pronóstico para Concepción",odetail:"Carriel Sur (360019)"},
+  {name:"Los Ángeles",code:"370033",aliases:["los angeles"],fdetail:"Pronóstico para Los Ángeles",odetail:"María Dolores (370033)"}
 ];
-const REGIONAL_ALIASES=["concepcion","biobio"]; // respaldo si la localidad no aparece
+const REGIONAL_ALIASES=["concepcion","biobio"]; // respaldo del pronóstico si falta la localidad
 const PLANTS=[
   {name:"Planta Santa Fe",town:"Nacimiento",ref:"Los Ángeles"},
   {name:"Planta Laja",town:"Laja",ref:"Los Ángeles"}
@@ -166,25 +285,35 @@ const GR=[
 [["🟢","Hoy el riesgo es bajo: pueden trabajar con tranquilidad. ¡Que tengan una buena jornada! "],
  ["🟡","Recordemos usar protector solar, lentes y cubrenuca. ¡Cuidémonos entre todos! "],
  ["🟠","Hoy el sol pega fuerte: usen protector, cubrenuca y manga larga, y hagan sus pausas en la sombra. ¡Cuidémonos entre todos! "],
- ["🔴","Hoy el riesgo es muy alto. Reprogramen las tareas al sol en horas centrales, no se salten las pausas y avisen a su jefatura si sienten molestias. ¡Su salud es lo primero! "],
+ ["🔴","Hoy el riesgo es muy alto. Reprogramen las tareas al sol en horas centrales, no se salten las pausas y avisen a su jefatura si sienten molestias. ¡Su salud es lo primero! 💙"],
  ["🟣","Hoy el riesgo es extremo. Eviten las tareas al sol en horas centrales y coordinen con su jefatura. ¡Su salud es lo primero! "]
 ].forEach((x,i)=>{CATS[i].e=x[0];CATS[i].cierre=x[1]});
+
 const lvl=u=>Math.max(1,Math.round(u));
 const cat=u=>CATS.find(k=>lvl(u)<=k.b);
+const grey=k=>Object.assign({},k,{c:"#c9d3de",t:"#3d5080"});
 const $=id=>document.getElementById(id);
 const norm=s=>String(s).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
 const decode=s=>{const t=document.createElement("textarea");t.innerHTML=String(s);return t.value}; // CONCEPCI&Oacute;N -> CONCEPCIÓN
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+const pretty=s=>s.replace(/\s+/g," ").trim().toLowerCase().replace(/(^|[\s(,\-\/])([a-záéíóúñü])/g,(m,a,b)=>a+b.toUpperCase());
+const capWords=s=>String(s).replace(/\s+/g," ").trim().replace(/(^|[\s(,\-\/])([a-záéíóúñü])/g,(m,a,b)=>a+b.toUpperCase());
+const lvTxt=n=>n>=11?"11+":String(n);
+function rangesText(a){ // [6,7] -> "6-7" ; [3,4,5,8] -> "3-5, 8"
+  const out=[];let i=0;
+  while(i<a.length){let j=i;while(j+1<a.length&&a[j+1]===a[j]+1)j++;out.push(j>i?lvTxt(a[i])+"-"+lvTxt(a[j]):lvTxt(a[i]));i=j+1}
+  return out.join(", ");
+}
+const slug=s=>norm(s).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"informe";
 const p2=n=>String(n).padStart(2,"0");
+const fmt=v=>String(Math.round(v*10)/10).replace(".",",");
+const bigTxt=n=>n>=11?"11+":String(n);
 
 /* ===================== FECHA / HORA DE CHILE ===================== */
-function chileNow(){
-  const parts=new Intl.DateTimeFormat("en-CA",{timeZone:TZ,year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
-  return parts; // YYYY-MM-DD
-}
-function fmtLong(iso){
-  return cap(new Date(iso+"T12:00:00").toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"long",year:"numeric"}));
-}
+function chileNow(){return new Intl.DateTimeFormat("en-CA",{timeZone:TZ,year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date())}
+function fmtLong(iso){return cap(new Date(iso+"T12:00:00").toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"long",year:"numeric"}))}
+const fmtShort=iso=>new Date(iso+"T12:00:00").toLocaleDateString("es-CL",{weekday:"short",day:"numeric",month:"short"});
 function fmtQuery(d){
   return d.toLocaleDateString("es-CL",{timeZone:TZ,day:"numeric",month:"long",year:"numeric"})+", "+
          d.toLocaleTimeString("es-CL",{timeZone:TZ,hour:"2-digit",minute:"2-digit",hour12:false})+" h";
@@ -199,6 +328,7 @@ function toISO(s){
   if(m)return m[3]+"-"+p2(m[2])+"-"+p2(m[1]);
   return null;
 }
+function normHora(s){const m=String(s).match(/(\d{1,2}):(\d{2})/);return m?p2(m[1])+":"+m[2]:null}
 function parseIdx(raw){
   const s=String(raw).replace(",",".");
   if(/\+/.test(s)){const n=parseFloat(s)||11;return{lo:n,hi:Math.max(n,11),text:"11+"}}
@@ -212,33 +342,26 @@ function parseKV(body){
   while((m=re.exec(body)))o[m[1].toLowerCase()]=(m[2]!==undefined?m[2]:m[3]!==undefined?m[3]:m[4]||"").trim();
   return o;
 }
-function extractEntries(text){
-  const out=[];let m;
-  const re=/\{[^{}]*fechapron[^{}]*\}/gi;
+// Cada registro del archivo: RadiacionUVB.push({ indice, nombre, codigografico, enservicio, fechaobs, horaobs, indiceobs, fechapron, indicepron, ... })
+function extractObjects(text){
+  const out=[],re=/\{[^{}]*?(?:fechapron|fechaobs|codigografico)[^{}]*\}/gi;let m;
   while((m=re.exec(text))){
     const o=parseKV(m[0]);
-    if(o.fechapron!==undefined&&o.indicepron!==undefined)out.push({fecha:o.fechapron,indice:o.indicepron,ctx:norm(decode(o.nombre||m[0]))});
+    o._code=String(o.codigografico||o.indice||"");
+    o._ctx=norm(decode((o.nombre||"")+" "+o._code));
+    out.push(o);
   }
-  if(out.length)return out;
-  // Respaldo: pares fechapron ... indicepron en cualquier formato
-  const re2=/fechapron["']?\s*[:=]\s*["']?([^"',}\]\s]+)["']?[\s\S]{0,300}?indicepron["']?\s*[:=]\s*["']?([^"',}\]\s]+)/gi;
-  while((m=re2.exec(text)))out.push({fecha:m[1],indice:m[2],ctx:norm(text.slice(Math.max(0,m.index-300),m.index+m[0].length))});
   return out;
 }
-
-// 1) fetch directo; 2) si el navegador lo bloquea (CORS), carga como <script> y lee las variables nuevas
+// 1) fetch directo; 2) si el navegador lo bloquea (CORS), se carga como <script> con la lista RadiacionUVB ya creada
 function viaScript(){
   return new Promise((res,rej)=>{
-    window.RadiacionUVB=[]; // el archivo solo hace RadiacionUVB.push({...}); la lista debe existir antes
-    const before=new Set(Object.getOwnPropertyNames(window));
+    window.RadiacionUVB=[];
     const s=document.createElement("script");
     s.src=SRC+"&_="+Date.now();
     s.onload=()=>{
       const parts=[];
       try{(window.RadiacionUVB||[]).forEach(o=>parts.push(JSON.stringify(o)))}catch(e){}
-      Object.getOwnPropertyNames(window).forEach(k=>{
-        if(!before.has(k)){try{parts.push(JSON.stringify(window[k]))}catch(e){}}
-      });
       s.remove();res(parts.join("\n"));
     };
     s.onerror=()=>{s.remove();rej(new Error("no se pudo cargar el archivo de Meteochile"))};
@@ -256,160 +379,600 @@ async function loadSource(){
   }
 }
 
-/* ===================== ESTADO Y RENDER ===================== */
-let STATE={hoy:chileNow(),consultado:null,stations:STATIONS.map(s=>({...s,fc:null})),error:null,loading:false};
+/* ===================== ESTADO ===================== */
+let STATE={
+  hoy:chileNow(),consultado:null,error:null,loading:false,
+  fc:STATIONS.map(s=>({...s,fc:null})),
+  obs:STATIONS.map(s=>({...s,ob:null})),
+  all:[]
+};
+let CUS={sel:null,type:"f",msub:"f",levels:new Set(),file:null,url:null,open:true,msg:""};
 let consultaTxt="";
 
-function buildStations(entries,hoy){
-  const today=entries.filter(e=>toISO(e.fecha)===hoy); // solo el día en curso
-  console.log("[UV] entradas leídas:",entries.length,"| de hoy ("+hoy+"):",today.length);
-  const pick=aliases=>{
-    const c=today.filter(e=>aliases.some(a=>e.ctx.includes(a)));
-    if(!c.length)return null;
-    return c.map(e=>({e,i:parseIdx(e.indice)})).filter(x=>x.i).sort((a,b)=>b.i.hi-a.i.hi)[0]||null;
-  };
+// Registros de una estación fija: por código; si no existe, por nombre
+function forS(objs,s){
+  const byCode=objs.filter(o=>o._code===s.code);
+  return byCode.length?byCode:objs.filter(o=>s.aliases.some(a=>o._ctx.includes(a)));
+}
+const obsOf=o=>({v:parseFloat(String(o.indiceobs).replace(",",".")),h:normHora(o.horaobs)});
+const hasObs=(o,hoy)=>o.fechaobs&&o.horaobs&&o.indiceobs&&toISO(o.fechaobs)===hoy;
+const hasFc=(o,hoy)=>o.fechapron&&o.indicepron&&toISO(o.fechapron)===hoy;
+const bestFc=list=>list.map(o=>parseIdx(o.indicepron)).filter(Boolean).sort((a,b)=>b.hi-a.hi)[0]||null;
+function bestFcAny(arr){
+  const c=arr.filter(o=>o.fechapron&&o.indicepron).map(o=>({iso:toISO(o.fechapron),i:parseIdx(o.indicepron)})).filter(x=>x.iso&&x.i);
+  if(!c.length)return null;
+  c.sort((a,b)=>a.iso<b.iso?1:a.iso>b.iso?-1:b.i.hi-a.i.hi);
+  return{...c[0].i,date:c[0].iso};
+}
+const latestObs=list=>list.map(obsOf).filter(x=>!isNaN(x.v)&&x.h).sort((a,b)=>a.h<b.h?1:a.h>b.h?-1:0)[0]||null;
+
+/* ---- Pronóstico: solo el día en curso ---- */
+function buildForecast(objs,hoy){
+  const today=objs.filter(o=>hasFc(o,hoy));
+  console.log("[UV] pronósticos de hoy ("+hoy+"):",today.length);
   return STATIONS.map(s=>{
-    let hit=pick(s.aliases),regional=false;
-    if(!hit){hit=pick(REGIONAL_ALIASES);regional=!!hit}
-    return{...s,fc:hit?{...hit.i,regional}:null};
+    let hit=bestFc(forS(objs,s).filter(o=>hasFc(o,hoy))),regional=false;
+    if(!hit){hit=bestFc(today.filter(o=>REGIONAL_ALIASES.some(a=>o._ctx.includes(a))));regional=!!hit}
+    return{...s,fc:hit?{...hit,regional}:null};
   });
 }
+/* ---- Observado: solo la medición de hoy disponible al momento de la consulta ---- */
+function buildObs(objs,hoy){
+  console.log("[UV] observaciones de hoy ("+hoy+"):",objs.filter(o=>hasObs(o,hoy)).length);
+  return STATIONS.map(s=>({...s,ob:latestObs(forS(objs,s).filter(o=>hasObs(o,hoy)))}));
+}
+/* ---- Todas las estaciones del archivo (para el informe personalizado) ---- */
+function buildAll(objs,hoy){
+  const g={};
+  objs.forEach(o=>{if(o._code)(g[o._code]=g[o._code]||[]).push(o)});
+  return Object.keys(g).map(code=>{
+    const arr=g[code],name=pretty(decode(arr[0].nombre||code));
+    return{code,name,key:norm(name+" "+code),
+      svc:arr.some(o=>String(o.enservicio).toLowerCase()!=="false"),
+      fc:bestFcAny(arr),   // el pronóstico que entregue el archivo, con su fecha (puede ser de mañana)
+      ob:latestObs(arr.filter(o=>hasObs(o,hoy)))};
+  }).sort((a,b)=>a.name.localeCompare(b.name,"es"));
+}
 
+/* ===================== ACTUALIZAR (botón manual) ===================== */
 async function actualizar(){
   if(STATE.loading)return;
   STATE.loading=true;STATE.error=null;
-  const btn=$("ref");btn.disabled=true;btn.classList.add("spin");$("reft").textContent="Actualizando…";
+  const btns=document.querySelectorAll(".rf");
+  btns.forEach(b=>{b.disabled=true;b.classList.add("spin");b.querySelector(".reft").textContent="Actualizando…"});
+  renderCustomList();
   try{
     const text=await loadSource();
-    const hoy=chileNow();
-    const entries=extractEntries(text);
-    if(!entries.length)throw new Error("no se encontraron los campos «fechapron» e «indicepron» en el archivo");
+    const hoy=chileNow(),objs=extractObjects(text);
+    if(!objs.length)throw new Error("no se encontraron registros de estaciones en el archivo");
+    console.log("[UV] registros leídos:",objs.length);
     STATE.hoy=hoy;
-    STATE.stations=buildStations(entries,hoy);
+    STATE.fc=buildForecast(objs,hoy);
+    STATE.obs=buildObs(objs,hoy);
+    STATE.all=buildAll(objs,hoy);
     STATE.consultado=new Date();
   }catch(e){
     console.error("[UV]",e);
-    STATE.error="No fue posible actualizar el pronóstico: "+(e.message||e)+". Intenta nuevamente.";
+    STATE.error="No fue posible actualizar la información: "+(e.message||e)+". Intenta nuevamente.";
   }finally{
-    STATE.loading=false;btn.disabled=false;btn.classList.remove("spin");$("reft").textContent="Actualizar";
+    STATE.loading=false;
+    btns.forEach(b=>{b.disabled=false;b.classList.remove("spin");b.querySelector(".reft").textContent="Actualizar"});
     render();
   }
 }
 
-function render(){
-  const hoy=STATE.hoy,fecha=fmtLong(hoy);
-  $("fecha").textContent=fecha;
-  consultaTxt=STATE.consultado?fmtQuery(STATE.consultado):"";
-  $("upd").textContent=STATE.consultado?"🕒 Última consulta a Meteochile: "+consultaTxt+" (hora de Chile)":"🕒 Aún sin consulta";
-  $("upd2").textContent=STATE.consultado?consultaTxt+" (hora de Chile). Actualización manual con el botón «Actualizar».":"Aún sin consulta.";
-  const er=$("err");er.style.display=STATE.error?"block":"none";er.textContent=STATE.error||"";
+/* ===================== ESTRUCTURA DE LAS VISTAS ===================== */
+function heroHTML(p,c){
+  return `<header class="hero"><div class="w">
+  <span class="eyebrow">${c.eyebrow}</span>
+  <div class="two"><h1>${c.h1}</h1><div>${c.pl.map(x=>`<p class="pl"><b>+</b>${x}</p>`).join("")}</div></div>
+  <div class="meta"><span id="fecha-${p}"></span><button class="rf" type="button"><span class="ic">↻</span><span class="reft">Actualizar</span></button><span id="upd-${p}"></span></div>
+  <div class="err" id="err-${p}" role="alert"></div>
+  <div class="pillars">${c.pillars.map(x=>`<div><h3>${x[0]}</h3><p>${x[1]}</p></div>`).join("")}</div>
+</div></header>`;
+}
+function footHTML(p,fuente){
+  return `<footer class="ft"><div class="w">
+  <div class="cols">
+    <div><h5>Fuente</h5><p>${fuente}</p></div>
+    <div><h5>Actualización</h5><p id="upd2-${p}">Aún sin consulta.</p></div>
+  </div>
+  <p class="note" id="note-${p}"></p>
+</div></footer>`;
+}
+function shell(p,c){
+  return heroHTML(p,c)+`<main class="w">
+  <section>
+    <div class="sh"><span class="n">01</span><h2>${c.s1[0]}</h2></div><div class="bar"></div>
+    <p class="sub">${c.s1[1]}</p>
+    <div class="g2" id="st-${p}"></div>
+  </section>
+  <section>
+    <div class="sh"><span class="n">02</span><h2>Escala del índice UV</h2></div><div class="bar"></div>
+    <p class="sub">${c.s2}</p>
+    <div class="scale" id="scale-${p}"></div>
+    <div class="grp" id="grp-${p}"></div>
+  </section>
+  <section>
+    <div class="sh"><span class="n">03</span><h2>Prevención por planta</h2></div><div class="bar"></div>
+    <p class="sub">Recomendaciones según ${c.s3} más cercana a cada planta.</p>
+    <div class="g2" id="pl-${p}"></div>
+  </section>
+</main>`+footHTML(p,c.fuente);
+}
+$("v-pronostico").innerHTML=shell("f",{
+  eyebrow:"Pronóstico del índice UV",
+  h1:'Gestión Preventiva de <em>Radiación UV</em> en Nuestras Operaciones',
+  pl:["Trabajo seguro al aire libre","Bienestar de las personas"],
+  pillars:[["FUENTE OFICIAL","Dirección Meteorológica de Chile"],["ACTUALIZACIÓN MANUAL","Presiona «Actualizar» para consultar el pronóstico vigente"],["PREVENCIÓN","Recomendaciones para cada planta"]],
+  s1:["Pronóstico UV de hoy","Pronóstico oficial del índice UV para el día en curso (día despejado)."],
+  s2:"El borde marca el nivel pronosticado para hoy.",
+  s3:"la localidad de referencia",
+  fuente:"Dirección Meteorológica de Chile, pronóstico del índice de radiación UV."
+});
+$("v-observado").innerHTML=shell("o",{
+  eyebrow:"Índice UV observado",
+  h1:'Monitoreo del <em>Riesgo UV</em> en Nuestras Operaciones',
+  pl:["Mediciones reales de la jornada","Decisiones oportunas para cuidarnos"],
+  pillars:[["FUENTE OFICIAL","Dirección Meteorológica de Chile"],["MEDICIÓN OBSERVADA","Valor medido por cada estación al momento de la consulta"],["PREVENCIÓN","Recomendaciones para cada planta"]],
+  s1:["Monitoreo de estaciones","Índice UV observado hoy en las estaciones de la región (última medición disponible al consultar)."],
+  s2:"El borde marca el nivel observado en las estaciones.",
+  s3:"la estación de referencia",
+  fuente:"Dirección Meteorológica de Chile, red nacional de radiación UV (estaciones Carriel Sur y María Dolores)."
+});
+$("v-personalizado").innerHTML=heroHTML("c",{
+  eyebrow:"Informe personalizado",
+  h1:'Gestión Integral del <em>Riesgo UV</em>',
+  pl:["Elige la estación de referencia","Genera la imagen según la planta de interés"],
+  pillars:[["FUENTE OFICIAL","Dirección Meteorológica de Chile"],["TODAS LAS ESTACIONES","Las disponibles en el sistema de Meteochile"],["IMAGEN Y TEXTO LISTOS","Para descargar o enviar por WhatsApp"]]
+})+`<main class="w">
+  <section id="sec1">
+    <div class="sh"><span class="n">01</span><h2>Busca la estación</h2></div><div class="bar"></div>
+    <button class="acc" id="acc" type="button" aria-expanded="true" aria-controls="accb"><span id="acct">🔎 Buscar estación</span><span class="car">▾</span></button>
+    <div class="accb" id="accb">
+      <p class="sub">Estaciones disponibles: <strong id="cnt">0</strong>. Escribe el nombre o el código y selecciona una.</p>
+      <input class="inp" id="q" type="search" placeholder="Ej.: Concepción, Los Ángeles, 360019…" autocomplete="off" aria-label="Buscar estación">
+      <div class="sres-list" id="sl"></div>
+    </div>
+  </section>
+  <section id="cform">
+    <div class="sh"><span class="n">02</span><h2>Datos del informe</h2></div><div class="bar"></div>
+    <div class="fgrid">
+      <label>Nombre de la planta<input class="inp" id="pn" type="text" maxlength="60" placeholder="Ej.: Planta Santa Fe" autocomplete="off"></label>
+      <label>Comuna<input class="inp" id="pc" type="text" maxlength="40" placeholder="Ej.: Nacimiento" autocomplete="off"></label>
+    </div>
+    <p class="lbl">¿Qué informe quieres generar?</p>
+    <div class="segs three">
+      <button class="seg on" type="button" data-t="f">📅 Pronóstico UV<small>Dato publicado por Meteochile, con su fecha</small></button>
+      <button class="seg" type="button" data-t="o">📡 UV Observado<small>Valor medido por la estación al consultar</small></button>
+      <button class="seg" type="button" data-t="m">✍️ Manual<small>Ingresa tú los datos si Meteochile no está disponible</small></button>
+    </div>
+    <div class="mblock" id="m1" hidden>
+      <p class="lbl">¿El informe manual es de pronóstico u observado?</p>
+      <div class="segs two">
+        <button class="seg mseg on" type="button" data-ms="f">📅 Pronóstico manual</button>
+        <button class="seg mseg" type="button" data-ms="o">📡 Observado manual</button>
+      </div>
+      <div class="fgrid" style="margin-top:16px">
+        <label>Fecha del informe<input class="inp" id="mdate" type="date"></label>
+      </div>
+    </div>
+  </section>
+  <section>
+    <div class="sh"><span class="n">03</span><h2>Escala del índice UV</h2></div><div class="bar"></div>
+    <p class="sub" id="sub-c3">El borde marca el nivel del informe seleccionado.</p>
+    <div class="scale" id="scale-c"></div>
+    <div class="grp" id="grp-c"></div>
+    <div class="mblock" id="m2" hidden>
+      <p class="lbl">Referencia y fuente</p>
+      <div class="fgrid">
+        <label>Referencia (estación meteorológica)<input class="inp" id="mref" type="text" maxlength="60" placeholder="Ej.: Carriel Sur, Concepción" autocomplete="off"></label>
+        <label>Fuente<select class="inp" id="msrc"><option value="dmc">Dirección Meteorológica de Chile</option><option value="otra">Otra fuente…</option></select></label>
+      </div>
+      <div class="fgrid" id="msrcw" style="margin-top:14px" hidden>
+        <label>Nombre de la fuente<input class="inp" id="msrct" type="text" maxlength="80" placeholder="Escribe el nombre de la fuente" autocomplete="off"></label>
+      </div>
+    </div>
+  </section>
+  <section>
+    <div class="sh"><span class="n">04</span><h2>Vista previa y generación</h2></div><div class="bar"></div>
+    <p class="sub">Revisa los datos y genera la imagen, o envíala por WhatsApp junto con el texto.</p>
+    <div id="cprev"></div>
+    <div class="btns">
+      <button class="gen" id="genwa" type="button" disabled>Enviar por WhatsApp (imagen + texto)</button>
+      <button class="gen alt" id="gen" type="button" disabled>Generar imagen</button>
+    </div>
+  </section>
+</main>`+footHTML("c","Dirección Meteorológica de Chile, sistema de radiación UV.");
 
-  $("st").innerHTML=STATE.stations.map(s=>{
-    const f=s.fc,k0=cat(f?f.hi:0),k=f?k0:Object.assign({},k0,{c:"#c9d3de",t:"#3d5080"});
+/* ===================== RENDER ===================== */
+const byName=(n,m)=>{const l=m==="f"?STATE.fc:STATE.obs;return l.find(s=>s.name===n)||l[0]};
+
+function scaleHTML(on,interactive){
+  return CATS.map(k=>`<div class="cat" style="flex:${k.tiles.length}">
+   <div class="chip" style="background:${k.c};color:${k.t}">${k.n.toUpperCase()}</div>
+   <div class="tiles">${k.tiles.map(n=>`<div class="tile${on.has(n)?" on":""}${interactive?" tsel":""}"${interactive?` role="button" tabindex="0" aria-pressed="${on.has(n)}" data-n="${n}"`:""} style="background:${k.c};color:${k.t}"><i>ÍNDICE UV</i><b>${n==11?"11+":n}</b></div>`).join("")}</div></div>`).join("");
+}
+const grpHTML=()=>GR.map(g=>`<div class="gb"><h4>${g.h}</h4>${g.p.map(x=>`<p>${x}</p>`).join("")}</div>`).join("");
+
+// Descriptor común (tarjetas, imagen y mensaje de WhatsApp) a partir de una estación con .fc u .ob
+// Completa un descriptor con fecha, títulos, fuente y sello de consulta
+function fin(d,date,fuente,stamp,stampMsg){
+  const today=date===STATE.hoy,f=d.type==="f";
+  d.date=date;d.isToday=today;
+  d.title=f?(today?"Índice UV de hoy":"Pronóstico del índice UV"):(today?"Índice UV observado hoy":"Índice UV observado");
+  d.head=f?(today?"Índice UV pronosticado hoy":"Índice UV pronosticado"):(today?"Índice UV observado hoy":"Índice UV observado");
+  d.care=today?"Para cuidarnos hoy":"Para cuidarnos ese día";
+  d.cierre=today?d.k.cierre:d.k.cierre.replace(/^Hoy /,"Ese día ");
+  d.fuente=fuente||"Dirección Meteorológica de Chile";
+  d.stamp=stamp||("Consultado: "+consultaTxt+" (hora de Chile)");
+  d.stampMsg=stampMsg||("🕒 Consultado: "+consultaTxt);
+  return d;
+}
+// Descriptor común (tarjetas, imagen y mensaje de WhatsApp) a partir de una estación con .fc u .ob
+function descrS(s,m){
+  if(m==="f"){
+    const f=s.fc;if(!f)return null;
+    const lo=Math.max(1,Math.round(f.lo)),hi=Math.min(11,Math.round(f.hi)),levels=[];
+    for(let n=lo;n<=hi;n++)levels.push(n);
+    return fin({type:"f",s,k:cat(f.hi),big:f.text,lo,hi,levels,
+      lines:["Pronóstico UV: "+f.text+" (día despejado)"],
+      tline:"IUV pronosticado "+f.text,nivel:"IUV pronosticado "+f.text+", día despejado",extraMsg:[],
+      tipoRef:"Localidad de referencia",tag:"PRONÓSTICO",
+      foot:"Pronóstico de la localidad de referencia, no medido en la planta."},f.date||STATE.hoy);
+  }
+  const ob=s.ob;if(!ob)return null;
+  const n=lvl(ob.v),v=Math.min(11,n);
+  return fin({type:"o",s,k:cat(ob.v),big:bigTxt(n),lo:v,hi:v,levels:[v],
+    lines:["Observado: "+fmt(ob.v)+" a las "+ob.h+" h"],
+    tline:"IUV observado "+n,nivel:"IUV observado "+fmt(ob.v)+" a las "+ob.h+" h",extraMsg:[],
+    tipoRef:"Estación de referencia",tag:"OBSERVADO",
+    foot:"Dato de la estación de referencia, no medido dentro de la planta."},STATE.hoy);
+}
+const descr=(p,m)=>descrS(byName(p.ref,m),m);
+
+function plantCard(p,i,m){
+  const d=descr(p,m),s=byName(p.ref,m),k=d?d.k:grey(cat(0));
+  return `<div class="card plant" style="--c:${k.c}"><h3>Recomendado para ${p.name}</h3>
+  <div class="t">${p.town} · referencia: ${s.name} · ${d?d.tline:"IUV sin dato"}</div>
+  <span class="pill" style="background:${k.c};color:${k.t}">${d?k.n:"Sin dato"}</span>
+  <ul>${d?k.r.map(x=>`<li>${x}</li>`).join(""):`<li>${m==="f"?"Aún no hay pronóstico UV para hoy.":"Aún no hay mediciones de hoy."} Presiona «Actualizar» para consultar nuevamente.</li>`}</ul>
+  <div class="btns"><button class="wa" data-i="${i}" data-m="${m}" ${d?"":"disabled"}>Enviar al equipo de ${p.name} por WhatsApp</button></div></div>`;
+}
+
+function renderCommon(){
+  consultaTxt=STATE.consultado?fmtQuery(STATE.consultado):"";
+  ["f","o","c"].forEach(p=>{
+    $("fecha-"+p).textContent=fmtLong(STATE.hoy);
+    $("upd-"+p).textContent=STATE.consultado?"🕒 Última consulta a Meteochile: "+consultaTxt+" (hora de Chile)":"🕒 Aún sin consulta";
+    $("upd2-"+p).textContent=STATE.consultado?consultaTxt+" (hora de Chile). Actualización manual con el botón «Actualizar».":"Aún sin consulta.";
+    const er=$("err-"+p);er.style.display=STATE.error?"block":"none";er.textContent=STATE.error||"";
+  });
+  $("note-f").textContent="Los valores corresponden al pronóstico oficial de la Dirección Meteorológica de Chile para una localidad de referencia, no a mediciones dentro de las plantas.";
+  $("note-o").textContent="Los valores corresponden a estaciones de referencia de la Dirección Meteorológica de Chile, no a mediciones dentro de las plantas. Se muestra la última medición publicada por cada estación al momento de la consulta.";
+  $("note-c").textContent="El informe usa los datos publicados por la Dirección Meteorológica de Chile para la estación seleccionada, no mediciones dentro de la planta.";
+}
+function renderF(){
+  $("st-f").innerHTML=STATE.fc.map(s=>{
+    const f=s.fc,k0=cat(f?f.hi:0),k=f?k0:grey(k0);
     return `<div class="card st">
       <div class="badge" style="background:${k.c};color:${k.t}"><i>${f?"PRONÓSTICO":"SIN DATO"}</i><b class="${f&&f.text.length>2?"sm":""}">${f?f.text:"—"}</b></div>
-      <div><h3>${s.name}</h3><p>${s.detail}</p>
+      <div><h3>${s.name}</h3><p>${s.fdetail}</p>
         <span class="pill" style="background:${k.c};color:${k.t}">${f?k.n:"Sin pronóstico hoy"}</span>
         ${f?`<p><strong>Pronóstico UV:</strong> ${f.text} <span style="font-size:.72rem">(día despejado)</span></p>`:`<p>${STATE.consultado?"Meteochile no publica pronóstico para hoy.":"Presiona «Actualizar»."}</p>`}
         ${f&&f.regional?`<p style="font-size:.72rem">Referencia regional (Concepción/Biobío).</p>`:""}
       </div></div>`;
   }).join("");
-
   const on=new Set();
-  STATE.stations.forEach(s=>{if(s.fc)for(let n=Math.max(1,Math.round(s.fc.lo));n<=Math.min(11,Math.round(s.fc.hi));n++)on.add(n)});
-  $("scale").innerHTML=CATS.map(k=>`<div class="cat" style="flex:${k.tiles.length}">
-   <div class="chip" style="background:${k.c};color:${k.t}">${k.n.toUpperCase()}</div>
-   <div class="tiles">${k.tiles.map(n=>`<div class="tile${on.has(n)?" on":""}" style="background:${k.c};color:${k.t}"><i>ÍNDICE UV</i><b>${n==11?"11+":n}</b></div>`).join("")}</div></div>`).join("");
-  $("grp").innerHTML=GR.map(g=>`<div class="gb"><h4>${g.h}</h4>${g.p.map(x=>`<p>${x}</p>`).join("")}</div>`).join("");
-
-  $("pl").innerHTML=PLANTS.map((p,i)=>{
-    const s=byName(p.ref),f=s.fc,k0=cat(f?f.hi:0),k=f?k0:Object.assign({},k0,{c:"#c9d3de",t:"#3d5080"});
-    return `<div class="card plant" style="--c:${k.c}"><h3>Recomendado para ${p.name}</h3>
-    <div class="t">${p.town} · referencia: ${s.name} · ${f?"IUV pronosticado "+f.text:"IUV sin pronóstico"}</div>
-    <span class="pill" style="background:${k.c};color:${k.t}">${f?k.n:"Sin dato"}</span>
-    ${f?`<ul>${k.r.map(x=>`<li>${x}</li>`).join("")}</ul>`:`<ul><li>Aún no hay pronóstico UV para hoy. Presiona «Actualizar» para consultar nuevamente.</li></ul>`}
-    <div class="btns"><button class="wa" data-i="${i}" ${f?"":"disabled"}>Enviar al equipo de ${p.name} por WhatsApp</button></div></div>`;
-  }).join("");
-
-  $("note").textContent="Los valores corresponden al pronóstico oficial de la Dirección Meteorológica de Chile para una localidad de referencia, no a mediciones dentro de las plantas.";
+  STATE.fc.forEach(s=>{if(s.fc)for(let n=Math.max(1,Math.round(s.fc.lo));n<=Math.min(11,Math.round(s.fc.hi));n++)on.add(n)});
+  $("scale-f").innerHTML=scaleHTML(on);
+  $("grp-f").innerHTML=grpHTML();
+  $("pl-f").innerHTML=PLANTS.map((p,i)=>plantCard(p,i,"f")).join("");
 }
-const byName=n=>STATE.stations.find(s=>s.name===n)||STATE.stations[0];
+function renderO(){
+  $("st-o").innerHTML=STATE.obs.map(s=>{
+    const ob=s.ob,k0=cat(ob?ob.v:0),k=ob?k0:grey(k0);
+    return `<div class="card st">
+      <div class="badge" style="background:${k.c};color:${k.t}"><i>${ob?"OBSERVADO":"SIN DATO"}</i><b>${ob?bigTxt(lvl(ob.v)):"—"}</b></div>
+      <div><h3>${s.name}</h3><p>${s.odetail}</p>
+        <span class="pill" style="background:${k.c};color:${k.t}">${ob?k.n:"Sin dato"}</span>
+        ${ob?`<p><strong>Observado:</strong> ${fmt(ob.v)} a las ${ob.h} h</p>`:`<p>${STATE.consultado?"Todavía sin mediciones de hoy.":"Presiona «Actualizar»."}</p>`}
+      </div></div>`;
+  }).join("");
+  const on=new Set();
+  STATE.obs.forEach(s=>{if(s.ob)on.add(Math.min(11,lvl(s.ob.v)))});
+  $("scale-o").innerHTML=scaleHTML(on);
+  $("grp-o").innerHTML=grpHTML();
+  $("pl-o").innerHTML=PLANTS.map((p,i)=>plantCard(p,i,"o")).join("");
+}
+
+/* ---- Informe personalizado ---- */
+const currentSel=()=>STATE.all.find(s=>s.code===CUS.sel)||null;
+function renderCustomList(){
+  const raw=$("q").value,q=norm(raw.trim()),words=q?q.split(/\s+/):[];
+  $("cnt").textContent=STATE.all.length;
+  if(!STATE.all.length){
+    $("sl").innerHTML=`<p class="empty">${STATE.loading?"Cargando estaciones…":"Presiona «Actualizar» para cargar las estaciones."}</p>`;return;
+  }
+  const l=STATE.all.filter(s=>words.every(w=>s.key.includes(w)));
+  $("sl").innerHTML=l.length?l.map(s=>`<button type="button" class="sres${s.code===CUS.sel?" on":""}" data-code="${esc(s.code)}"><b>${esc(s.name)}</b><small>Código ${esc(s.code)} · ${s.svc?"":"Fuera de servicio · "}${s.fc?"Pronóstico "+esc(fmtShort(s.fc.date))+": "+esc(s.fc.text):"Sin pronóstico"} · ${s.ob?"Observado: "+fmt(s.ob.v)+" ("+s.ob.h+" h)":"Sin observación hoy"}</small></button>`).join("")
+    :`<p class="empty">Sin resultados para «${esc(raw)}».</p>`;
+}
+function renderCustomAcc(){
+  const st=currentSel(),open=CUS.open||!st;
+  $("acct").textContent=st?"✓ "+st.name+" · Código "+st.code:"🔎 Buscar estación"+(STATE.all.length?" ("+STATE.all.length+" disponibles)":"");
+  $("accb").hidden=!open;
+  $("acc").setAttribute("aria-expanded",open?"true":"false");
+}
+// Muestra u oculta los bloques según el tipo de informe y renumera las secciones visibles
+function applyMode(){
+  const man=CUS.type==="m";
+  $("sec1").hidden=man;$("m1").hidden=!man;$("m2").hidden=!man;
+  if(man&&!$("mdate").value)$("mdate").value=STATE.hoy;
+  $("msrcw").hidden=$("msrc").value!=="otra";
+  document.querySelectorAll("#v-personalizado main section:not([hidden]) .n").forEach((el,i)=>{el.textContent=p2(i+1)});
+}
+function manualState(){
+  const levels=[...CUS.levels].sort((a,b)=>a-b);
+  const date=$("mdate").value,ref=capWords($("mref").value);
+  const fuente=$("msrc").value==="otra"?$("msrct").value.trim():"Dirección Meteorológica de Chile";
+  const missing=[];
+  if(!levels.length)missing.push("al menos un nivel en la escala");
+  if(!date)missing.push("la fecha del informe");
+  if(!ref)missing.push("la referencia");
+  if(!fuente)missing.push("el nombre de la fuente");
+  return{levels,date,ref,fuente,sub:CUS.msub,missing};
+}
+function descrManual(ms){
+  const lo=ms.levels[0],hi=ms.levels[ms.levels.length-1],text=rangesText(ms.levels),f=ms.sub==="f";
+  const now=fmtQuery(new Date());
+  return fin({type:ms.sub,s:{name:ms.ref},k:cat(hi),big:text,lo,hi,levels:ms.levels,
+    lines:[(f?"Pronóstico UV: ":"Observado: ")+text],
+    tline:(f?"IUV pronosticado ":"IUV observado ")+text,nivel:(f?"IUV pronosticado ":"IUV observado ")+text,extraMsg:[],
+    tipoRef:"Referencia",tag:f?"PRONÓSTICO":"OBSERVADO",
+    foot:"Dato de la referencia indicada, no medido dentro de la planta."},
+    ms.date,ms.fuente,"Informe manual · Emitido: "+now+" (hora de Chile)","🕒 Informe manual · Emitido: "+now);
+}
+// Devuelve {d,p} listo para generar, o null si falta algo
+function customDescr(){
+  const pn=capWords($("pn").value),pc=capWords($("pc").value);
+  if(CUS.type==="m"){
+    const ms=manualState();if(ms.missing.length)return null;
+    return{d:descrManual(ms),p:{name:pn||ms.ref,town:pc}};
+  }
+  const st=currentSel();if(!st)return null;
+  const d=descrS(st,CUS.type);if(!d)return null;
+  return{d,p:{name:pn||st.name,town:pc}};
+}
+function renderCustomScale(){
+  const man=CUS.type==="m";let on=new Set();
+  if(man)on=CUS.levels;
+  else{const st=currentSel(),d=st?descrS(st,CUS.type):null;if(d)d.levels.forEach(n=>on.add(n))}
+  $("scale-c").innerHTML=scaleHTML(on,man);
+  $("grp-c").innerHTML=grpHTML();
+  $("sub-c3").textContent=man?"Toca uno o más niveles de la escala (vuelve a tocar para quitarlos).":"El borde marca el nivel del informe seleccionado.";
+}
+function previewCard(d,title,sub){
+  const k=d.k,pn=capWords($("pn").value),pc=capWords($("pc").value);
+  const cls=d.big.length>4?"xs":d.big.length>2?"sm":"";
+  return `<div class="card st"><div class="badge" style="background:${k.c};color:${k.t}"><i>${d.tag}</i><b class="${cls}">${esc(d.big)}</b></div>
+    <div><h3>${esc(title)}</h3><p>${esc(sub)}</p>
+    <span class="pill" style="background:${k.c};color:${k.t}">${k.n}</span>
+    <p><strong>${esc(d.lines[0])}</strong></p>
+    <p><strong>Fecha del informe:</strong> ${esc(fmtLong(d.date))}</p>
+    ${d.isToday?"":`<p style="font-size:.74rem">La fecha del informe es distinta a la de hoy.</p>`}
+    <p style="font-size:.78rem">Se generará para: <strong>${esc(pn||title)}</strong>${pc?" · "+esc(pc):""}</p></div></div>`;
+}
+const greyCard=(t,msg)=>`<div class="card st"><div class="badge" style="background:#c9d3de;color:#3d5080"><i>SIN DATO</i><b>—</b></div><div><h3>${esc(t)}</h3><p>${esc(msg)}</p></div></div>`;
+function renderCustomPreview(){
+  renderCustomScale();
+  const box=$("cprev"),btns=[$("gen"),$("genwa")],setBtns=ok=>btns.forEach(b=>{b.disabled=!ok});
+  if(CUS.type==="m"){
+    const ms=manualState();
+    if(ms.missing.length){box.innerHTML=greyCard("Informe manual","Falta completar: "+ms.missing.join(", ")+".");setBtns(false);return}
+    box.innerHTML=previewCard(descrManual(ms),ms.ref,"Fuente: "+ms.fuente);setBtns(true);return;
+  }
+  const st=currentSel();
+  if(!st){box.innerHTML=`<div class="card"><p class="empty">Selecciona una estación para ver la vista previa.</p></div>`;setBtns(false);return}
+  const d=descrS(st,CUS.type);
+  if(!d){
+    box.innerHTML=greyCard(st.name,(CUS.type==="f"?"Esta estación no tiene pronóstico UV publicado en este momento.":"Esta estación no tiene una medición de hoy disponible.")+" Prueba con otro tipo de informe, con otra estación, con el informe Manual o presiona «Actualizar».");
+    setBtns(false);return;
+  }
+  box.innerHTML=previewCard(d,st.name,"Código "+st.code);setBtns(true);
+}
+function render(){renderCommon();renderF();renderO();renderCustomList();renderCustomAcc();applyMode();renderCustomPreview()}
 
 /* ===================== IMAGEN PARA COMPARTIR ===================== */
 const FF='Lato,"Segoe UI",system-ui,sans-serif';
 function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
 function wrap(c,t,w){const o=[];let l="";t.split(" ").forEach(a=>{const n=l?l+" "+a:a;if(c.measureText(n).width>w&&l){o.push(l);l=a}else l=n});if(l)o.push(l);return o}
-async function makeImg(p){
+// Dibuja el texto reduciendo la letra si no cabe en el ancho disponible
+function fit(c,t,x,y,maxW,weight,size,min){
+  let sz=size;
+  do{c.font=weight+" "+sz+"px "+FF;sz-=2}while(c.measureText(t).width>maxW&&sz>=min);
+  c.fillText(t,x,y);
+}
+// p = {name, town}; d = descriptor (descrS)
+async function makeImg(p,d){
  try{await document.fonts.load('700 40px Lato');await document.fonts.load('400 30px Lato')}catch(e){}
- const s=byName(p.ref),f=s.fc,fecha=fmtLong(STATE.hoy);
- const k=cat(f.hi),v=lvl(f.hi),lo=Math.max(1,Math.round(f.lo)),hi=Math.min(11,Math.round(f.hi)),W=1080,y0=920;
- const m=document.createElement("canvas").getContext("2d");m.font='400 32px '+FF;
- const bl=k.r.map(x=>wrap(m,x,860)),nl=bl.reduce((a,b)=>a+b.length,0);
+ const s=d.s,k=d.k,fecha=fmtLong(d.date),W=1080,y0=920;
+ const mm=document.createElement("canvas").getContext("2d");mm.font='400 32px '+FF;
+ const bl=k.r.map(x=>wrap(mm,x,860)),nl=bl.reduce((a,b)=>a+b.length,0);
  const cardH=130+nl*44+bl.length*12+30,H=y0+cardH+190;
  const cv=document.createElement("canvas");cv.width=W;cv.height=H;const c=cv.getContext("2d");
  const g=c.createLinearGradient(0,0,0,H);g.addColorStop(0,"#fff");g.addColorStop(.4,"#e3ecfc");g.addColorStop(1,"#a9c1f3");c.fillStyle=g;c.fillRect(0,0,W,H);
- c.fillStyle="#27385f";c.font='700 64px '+FF;c.fillText("Índice UV de hoy",60,110);
+ c.fillStyle="#27385f";fit(c,d.title,60,110,960,"700",64,36);
  c.fillStyle="#3d5080";c.font='400 34px '+FF;c.fillText(fecha,60,162);
  c.save();c.shadowColor="rgba(10,37,64,.18)";c.shadowBlur=30;c.shadowOffsetY=8;c.fillStyle="#fff";rr(c,60,205,960,520,36);c.fill();c.restore();
- c.fillStyle="#27385f";c.font='700 54px '+FF;c.fillText(p.name,100,285);
- c.fillStyle="#5f7080";c.font='400 30px '+FF;c.fillText(p.town+" · referencia: "+s.name,100,330);
+ c.fillStyle="#27385f";fit(c,p.name,100,285,880,"700",54,30);
+ c.fillStyle="#5f7080";fit(c,(p.town?p.town+" · ":"")+"Referencia: "+s.name,100,330,880,"400",30,18);
  c.fillStyle=k.c;rr(c,100,375,300,300,28);c.fill();
  c.fillStyle=k.t;c.textAlign="center";c.font='700 26px '+FF;c.fillText("ÍNDICE UV",250,420);
- c.font='700 '+(f.text.length>2?130:190)+'px '+FF;c.fillText(f.text,250,615);
+ fit(c,d.big,250,615,250,"700",190,36);
  c.textAlign="left";
  c.fillStyle="#27385f";c.font='700 84px '+FF;c.fillText(k.n,440,470);
- c.fillStyle="#3d5080";c.font='400 32px '+FF;c.fillText("Pronóstico UV: "+f.text+" (día despejado)",440,530);
- c.fillStyle="#0a8cff";c.font='700 28px '+FF;c.fillText(GR[k.g].h,440,590);
+ c.fillStyle="#3d5080";
+ d.lines.forEach((t,i)=>fit(c,t,440,530+i*42,570,"400",32,20));
+ c.fillStyle="#0a8cff";fit(c,GR[k.g].h,440,590+(d.lines.length-1)*42,570,"700",28,18);
  const tw=80,gp=8;
- for(let n=1;n<=11;n++){const kk=CATS.find(q=>n<=q.b),x=60+(n-1)*(tw+gp),on=n>=lo&&n<=hi,y=on?765:780;
+ for(let n=1;n<=11;n++){const kk=CATS.find(q=>n<=q.b),x=60+(n-1)*(tw+gp),on=d.levels.includes(n),y=on?765:780;
   c.fillStyle=kk.c;rr(c,x,y,tw,110,14);c.fill();
   if(on){c.lineWidth=7;c.strokeStyle="#27385f";rr(c,x,y,tw,110,14);c.stroke()}
   c.fillStyle=kk.t;c.textAlign="center";c.font='700 '+(n==11?36:46)+'px '+FF;c.fillText(n==11?"11+":String(n),x+tw/2,y+72)}
  c.textAlign="left";
  c.fillStyle="#fff";rr(c,60,y0,960,cardH,36);c.fill();
- c.fillStyle="#27385f";c.font='700 40px '+FF;c.fillText("Para cuidarnos hoy",100,y0+70);
+ c.fillStyle="#27385f";c.font='700 40px '+FF;c.fillText(d.care,100,y0+70);
  let y=y0+130;c.font='400 32px '+FF;
  bl.forEach(ls=>{ls.forEach((t,i)=>{if(i===0){c.fillStyle=k.c==="#fff44f"?"#e0c400":k.c;c.beginPath();c.arc(112,y-11,8,0,7);c.fill()}c.fillStyle="#14222f";c.fillText(t,140,y);y+=44});y+=12});
- c.fillStyle="#27385f";c.font='700 26px '+FF;c.fillText("Fuente: Dirección Meteorológica de Chile",60,H-110);
- c.fillStyle="#3d5080";c.font='400 24px '+FF;c.fillText("Consultado: "+consultaTxt+" (hora de Chile)",60,H-72);
- c.fillText("Pronóstico de la localidad de referencia, no medido en la planta.",60,H-38);
+ c.fillStyle="#27385f";fit(c,"Fuente: "+d.fuente,60,H-110,960,"700",26,16);
+ c.fillStyle="#3d5080";fit(c,d.stamp,60,H-72,960,"400",24,14);
+ fit(c,d.foot,60,H-38,960,"400",24,14);
  return new Promise(r=>cv.toBlob(r,"image/png"));
 }
-function buildMsg(p){
- const s=byName(p.ref),f=s.fc;if(!f)return null;
- const k=cat(f.hi),F=fmtLong(STATE.hoy);
- return [`Hola equipo de *${p.name}* (${p.town}) 👋`,"",`☀️ *Índice UV de hoy · ${F}*`,`${k.e} Nivel de referencia: *${k.n}* (IUV pronosticado ${f.text}, día despejado)`,`📍 Localidad de referencia: ${s.name}`,`🕒 Consultado: ${consultaTxt}`,"","*Para cuidarnos hoy:*",...k.r.map(x=>"• "+x),"",k.cierre,"","_Fuente: Dirección Meteorológica de Chile_"].join("\n");
+
+/* ===================== WHATSAPP: imagen + texto en un solo envío ===================== */
+function buildMsgD(p,d){
+ const who=p.town?`*${p.name}* (${p.town})`:`*${p.name}*`;
+ return [`Hola equipo de ${who} 👋`,"",
+  `☀️ *${d.head} · ${fmtLong(d.date)}*`,
+  `${d.k.e} Nivel de referencia: *${d.k.n}* (${d.nivel})`,
+  ...d.extraMsg,
+  `📍 ${d.tipoRef}: ${d.s.name}`,
+  d.stampMsg,"",
+  `*Para cuidarnos ${d.isToday?"hoy":"ese día"}:*`,...d.k.r.map(x=>"• "+x),"",d.cierre,"",`_Fuente: ${d.fuente}_`].join("\n");
 }
-async function sendWA(i){
- const p=PLANTS[i],btn=document.querySelector('.wa[data-i="'+i+'"]'),t=btn.textContent;
- const msg=buildMsg(p);if(!msg)return;
+function buildMsg(p,m){const d=descr(p,m);return d?buildMsgD(p,d):null}
+// Celular: abre el menú de compartir con imagen + texto. Computador: ventana con descarga + WhatsApp con el texto.
+async function shareWA(blob,name,msg,title){
+ const file=new File([blob],name,{type:"image/png"});
+ if(navigator.canShare&&navigator.canShare({files:[file]})){
+  try{await navigator.share({files:[file],text:msg,title});return}catch(e){if(e.name==="AbortError")return}
+ }
+ const u=URL.createObjectURL(blob);
+ $("mi").src=u;$("md").href=u;$("md").download=name;
+ $("mw").href="https://wa.me/?text="+encodeURIComponent(msg);
+ $("mo").hidden=false;
+}
+async function sendWA(i,m){
+ const p=PLANTS[i],btn=document.querySelector('.wa[data-i="'+i+'"][data-m="'+m+'"]'),t=btn.textContent;
+ const d=descr(p,m);if(!d)return;
  btn.textContent="Preparando imagen…";btn.disabled=true;
  try{
-  const blob=await makeImg(p);
-  const name="indice-uv-"+p.name.toLowerCase().replace(/[^a-z0-9]+/g,"-")+"-"+STATE.hoy+".png";
-  const file=new File([blob],name,{type:"image/png"});
-  // Celular: imagen + texto en un solo envío; se elige WhatsApp en el menú de compartir
-  if(navigator.canShare&&navigator.canShare({files:[file]})){
-   try{await navigator.share({files:[file],text:msg,title:"Índice UV · "+p.name});return}catch(e){if(e.name==="AbortError")return}
-  }
-  // Respaldo (computador): descargar imagen + abrir WhatsApp con el texto
-  const u=URL.createObjectURL(blob);
-  $("mi").src=u;$("md").href=u;$("md").download=name;
-  $("mw").href="https://wa.me/?text="+encodeURIComponent(msg);
-  $("mo").hidden=false;
+  const blob=await makeImg(p,d);
+  const name="indice-uv-"+(m==="f"?"pronostico":"observado")+"-"+slug(p.name)+"-"+d.date+".png";
+  await shareWA(blob,name,buildMsgD(p,d),"Índice UV · "+p.name);
  }finally{btn.textContent=t;btn.disabled=false}
 }
 
+/* ===================== INFORME PERSONALIZADO: imagen o WhatsApp ===================== */
+async function genCustom(mode){ // mode: "img" | "wa"
+ const c=customDescr();if(!c)return;
+ const btn=mode==="wa"?$("genwa"):$("gen"),t=btn.textContent;
+ $("gen").disabled=true;$("genwa").disabled=true;
+ btn.textContent=mode==="wa"?"Preparando imagen…":"Generando imagen…";
+ try{
+  const blob=await makeImg(c.p,c.d);
+  const tipo=(CUS.type==="m"?"manual-":"")+(c.d.type==="f"?"pronostico":"observado");
+  const name="indice-uv-"+tipo+"-"+slug(c.p.name)+"-"+c.d.date+".png";
+  const msg=buildMsgD(c.p,c.d);
+  if(mode==="wa"){await shareWA(blob,name,msg,"Índice UV · "+c.p.name);return}
+  CUS.file=new File([blob],name,{type:"image/png"});CUS.msg=msg;
+  if(CUS.url)URL.revokeObjectURL(CUS.url);
+  CUS.url=URL.createObjectURL(blob);
+  $("mi2").src=CUS.url;$("md2").href=CUS.url;$("md2").download=name;
+  $("ms2").hidden=!(navigator.canShare&&navigator.canShare({files:[CUS.file]}));
+  $("mo2").hidden=false;
+ }finally{btn.textContent=t;renderCustomPreview()}
+}
+
+/* ===================== NAVEGACIÓN Y PANEL LATERAL ===================== */
+const VIEWS=["inicio","pronostico","observado","personalizado"];
+const TITLES={inicio:"Índice Radiación UV",pronostico:"Pronóstico UV · Índice Radiación UV",observado:"UV Observado · Índice Radiación UV",personalizado:"Informe personalizado · Índice Radiación UV"};
+function route(){
+  let h=(location.hash||"#inicio").slice(1);if(!VIEWS.includes(h))h="inicio";
+  VIEWS.forEach(v=>{$("v-"+v).hidden=v!==h});
+  document.querySelectorAll("[data-nav]").forEach(a=>a.classList.toggle("on",a.dataset.nav===h));
+  document.body.classList.remove("open");
+  document.title=TITLES[h];
+  window.scrollTo(0,0);
+}
+window.addEventListener("hashchange",route);
+
+try{if(localStorage.getItem("uvpin")==="1")document.body.classList.add("pinned")}catch(e){}
+function syncPin(){
+  const on=document.body.classList.contains("pinned"),b=$("pin");
+  b.classList.toggle("on",on);b.setAttribute("aria-pressed",on?"true":"false");
+  $("pint").textContent=on?"Menú Fijado":"Fijar Menú";
+}
+syncPin();
+$("pin").onclick=()=>{
+  const on=document.body.classList.toggle("pinned");
+  document.body.classList.remove("open");
+  try{localStorage.setItem("uvpin",on?"1":"0")}catch(e){}
+  syncPin();
+};
+$("burger").onclick=()=>document.body.classList.add("open");
+$("sbt").onclick=()=>document.body.classList.remove("open");
+$("scrim").onclick=()=>document.body.classList.remove("open");
+document.addEventListener("keydown",e=>{if(e.key==="Escape")document.body.classList.remove("open")});
+document.querySelectorAll("[data-nav]").forEach(a=>a.addEventListener("click",()=>document.body.classList.remove("open")));
+
 /* ===================== EVENTOS ===================== */
-$("ref").onclick=actualizar;
 $("mc").onclick=()=>{$("mo").hidden=true};
 $("mo").onclick=e=>{if(e.target.id==="mo")$("mo").hidden=true};
+$("mc2").onclick=()=>{$("mo2").hidden=true};
+$("mo2").onclick=e=>{if(e.target.id==="mo2")$("mo2").hidden=true};
+$("ms2").onclick=async()=>{
+  try{await navigator.share({files:[CUS.file],text:CUS.msg||"",title:"Índice UV"})}catch(e){}
+};
+$("q").addEventListener("input",renderCustomList);
+["pn","pc","mdate","mref","msrct"].forEach(id=>$(id).addEventListener("input",renderCustomPreview));
+$("msrc").addEventListener("change",()=>{applyMode();renderCustomPreview()});
+function toggleLevel(n){
+  if(CUS.levels.has(n))CUS.levels.delete(n);else CUS.levels.add(n);
+  renderCustomPreview();
+}
+document.addEventListener("keydown",e=>{
+  if((e.key==="Enter"||e.key===" ")&&e.target.classList&&e.target.classList.contains("tsel")){e.preventDefault();toggleLevel(+e.target.dataset.n)}
+});
 document.addEventListener("click",e=>{
- const b=e.target.closest(".wa");if(b)sendWA(+b.dataset.i);
+ if(e.target.closest(".rf")){actualizar();return}
+ const tl=e.target.closest(".tsel");
+ if(tl){toggleLevel(+tl.dataset.n);return}
+ if(e.target.closest("#acc")){
+   CUS.open=!(CUS.open||!currentSel());renderCustomAcc();
+   if(!$("accb").hidden)$("q").focus();
+   return;
+ }
+ const r=e.target.closest(".sres");
+ if(r){
+   CUS.sel=r.dataset.code;CUS.open=false;
+   renderCustomList();renderCustomAcc();renderCustomPreview();
+   requestAnimationFrame(()=>$("cform").scrollIntoView({behavior:"smooth",block:"start"}));
+   return;
+ }
+ const ms=e.target.closest(".mseg");
+ if(ms){
+   CUS.msub=ms.dataset.ms;
+   document.querySelectorAll(".mseg").forEach(b=>b.classList.toggle("on",b===ms));
+   renderCustomPreview();return;
+ }
+ const sg=e.target.closest(".seg[data-t]");
+ if(sg){
+   CUS.type=sg.dataset.t;
+   document.querySelectorAll(".seg[data-t]").forEach(b=>b.classList.toggle("on",b===sg));
+   applyMode();renderCustomPreview();return;
+ }
+ if(e.target.closest("#genwa")){genCustom("wa");return}
+ if(e.target.closest("#gen")){genCustom("img");return}
+ const b=e.target.closest(".wa");
+ if(b)sendWA(+b.dataset.i,b.dataset.m);
 });
 
 render();
-actualizar(); // una consulta al abrir la página; luego solo con el botón
+route();
+actualizar(); // una consulta al abrir; luego solo con el botón «Actualizar»
 </script>
 </body>
 </html>
