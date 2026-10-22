@@ -616,8 +616,8 @@ function descrS(s,m){
     const lo=Math.max(1,Math.round(f.lo)),hi=Math.min(11,Math.round(f.hi)),levels=[];
     for(let n=lo;n<=hi;n++)levels.push(n);
     return fin({type:"f",s,k:cat(f.hi),big:f.text,lo,hi,levels,
-      lines:["Pronóstico UV: "+f.text+"],
-      tline:"IUV pronosticado "+f.text,nivel:"IUV pronosticado "+f.text+",extraMsg:[],
+      lines:["Pronóstico UV: "+f.text],
+      tline:"IUV pronosticado "+f.text,nivel:"IUV pronosticado "+f.text+,extraMsg:[],
       tipoRef:"Localidad de referencia",tag:"PRONÓSTICO",
       foot:"Pronóstico de la localidad de referencia, no medido en la planta."},f.date||STATE.hoy);
   }
